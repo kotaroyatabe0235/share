@@ -1,0 +1,21 @@
+name: leak-scan
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks（全履歴）
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar xz gitleaks
+          ./gitleaks git . --no-banner -v
+      - name: 個人情報パターン（denylist なし）
+        run: |
+          mkdir -p ~/.config/share-guard && touch ~/.config/share-guard/denylist.txt
+          .githooks/pii-scan all

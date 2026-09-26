@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# 公開リポジトリ用：個人情報・クレデンシャルが入っていたらコミットを止める
+set -uo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+exec "$here/pii-scan" staged

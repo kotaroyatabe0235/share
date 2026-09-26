@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# 使い方: pii-scan staged | pii-scan message <file> | pii-scan all
+# 本人固有の語（住所の一部・本名など）はリポジトリに書かず、ローカルの denylist に置く
+set -uo pipefail
+mode="${1:-staged}"
+DENY="${SHARE_DENYLIST:-$HOME/.config/share-guard/denylist.txt}"
+FLAG="$(mktemp)"; trap 'rm -f "$FLAG"' EXIT
+say(){ printf '✗ %s\n' "$*" >&2; echo 1 > "$FLAG"; }
+
+# 許可する例外（コミットの帰属行など）
+ALLOW='noreply@anthropic\.com|users\.noreply\.github\.com|noreply@github\.com'
+PATTERNS=(
+  'メールアドレス|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+  '電話番号|(^|[^0-9])0[0-9]{1,4}-[0-9]{1,4}-[0-9]{3,4}([^0-9]|$)|(^|[^0-9])0[789]0[0-9]{8}([^0-9]|$)'
+  '郵便番号|〒|(^|[^0-9-])[0-9]{3}-[0-9]{4}([^0-9-]|$)'
+  '住所らしき表記|[都道府県][^ ]{0,8}[市区町村][^ ]{0,12}([0-9０-９一二三四五六七八九十]+丁目|番地|[0-9]+-[0-9]+-[0-9]+)'
+  '町名・丁目|[市区町村][^ ]{0,10}[0-9０-９一二三四五六七八九十]+丁目|[0-9０-９]+番地?[0-9０-９]+号'
+  'Tailscale/社内IP|(^|[^0-9])(100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])|10\.[0-9]{1,3}|192\.168|172\.(1[6-9]|2[0-9]|3[01]))\.[0-9]{1,3}\.[0-9]{1,3}'
+  '=ローカルのパス|/Users/[A-Za-z0-9._-]+|/home/[A-Za-z0-9._-]+|/private/tmp/|C:\\\\Users\\\\'
+  '鍵・トークンらしき文字列|-----BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{30,}'
+  '認証情報の代入|(password|passwd|secret|api[_-]?key|token|パスワード)[\"'"'"' ]*[:=][ ]*[\"'"'"']?[^ \"'"'"']{6,}'
+)
+
+scan_text(){ # $1=表示名, 標準入力=本文
+  local name="$1" body; body="$(cat)"
+  [ -z "$body" ] && return
+  for p in "${PATTERNS[@]}"; do
+    local label="${p%%|*}" re="${p#*|}" hit ci=-i
+    [ "${label:0:1}" = "=" ] && { ci=; label="${label:1}"; }  # 先頭が = のものは大文字小文字を区別
+    hit="$(printf '%s\n' "$body" | grep -nE $ci -- "$re" | grep -vEi -- "$ALLOW" | head -3)"
+    [ -n "$hit" ] && say "$name: $label" && printf '%s\n' "$hit" | sed 's/^/    /' >&2
+  done
+  if [ -f "$DENY" ]; then
+    while IFS= read -r w; do
+      [ -z "$w" ] || [ "${w:0:1}" = "#" ] && continue
+      printf '%s\n' "$body" | grep -qiF -- "$w" && say "$name: 本人固有の語（denylist の1語に一致。語は表示しない）"
+    done < "$DENY"
+  else
+    say "denylist がない: $DENY を用意してから再実行する"
+  fi
+}
+
+case "$mode" in
+  message) scan_text "コミットメッセージ" < "$2" ;;
+  staged|all)
+    if [ "$mode" = staged ]; then
+      files="$(git diff --cached --name-only --diff-filter=ACMR)"
+    else
+      files="$(git ls-files)"
+    fi
+    imgs=()
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      case "$f" in .githooks/pii-scan) continue ;; esac  # パターン定義そのもの
+      if [ "$mode" = staged ]; then blob(){ git show ":$f"; }; else blob(){ cat "$f"; }; fi
+      if blob | LC_ALL=C grep -qI . 2>/dev/null || [ "$(blob | wc -c)" -eq 0 ]; then
+        blob | scan_text "$f"
+      else
+        imgs+=("$f")
+        # 写真の位置情報（EXIF GPS）
+        blob | python3 -c 'import sys,io
+try:
+  from PIL import Image
+  e=Image.open(io.BytesIO(sys.stdin.buffer.read())).getexif()
+  sys.exit(1 if 34853 in e else 0)
+except Exception: sys.exit(0)' || say "$f: 画像に位置情報（EXIF GPS）がある"
+      fi
+    done <<< "$files"
+    if command -v gitleaks >/dev/null; then
+      if [ "$mode" = staged ]; then gitleaks git --staged --no-banner -l warn >/dev/null 2>&1 || say "gitleaks がクレデンシャルを検出（gitleaks git --staged -v で確認）"
+      else gitleaks dir . --no-banner -l warn >/dev/null 2>&1 || say "gitleaks がクレデンシャルを検出（gitleaks dir . -v で確認）"; fi
+    else
+      say "gitleaks が入っていない（brew install gitleaks）"
+    fi
+    if [ ${#imgs[@]} -gt 0 ] && [ "$mode" = staged ] && [ "${SHARE_IMAGES_REVIEWED:-}" != 1 ]; then
+      say "画像・バイナリ ${#imgs[@]} 件は機械では確認できない。1枚ずつ目で見てから SHARE_IMAGES_REVIEWED=1 を付けてコミットする"
+      printf '    %s\n' "${imgs[@]}" >&2
+    fi
+    ;;
+esac
+[ ! -s "$FLAG" ] || { echo "→ 止めました。上を直すか、誤検知なら本人に確認してから対処する（--no-verify は使わない）" >&2; exit 1; }

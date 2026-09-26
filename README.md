@@ -1,8 +1,9 @@
-# GitHub Projects WBS ガイド
+# share
 
-GitHub Projects で WBS を表に並べ、日単位のロードマップで見るまでの画面操作を、キャプチャ付きでまとめた HTML です。
+公開してよい資料の置き場です。ディレクトリ1つが1テーマです。
 
-- `index.html` … ガイド本体（ブラウザで開く）
-- `img/` … 画面キャプチャ
+| ディレクトリ | 中身 | ページ |
+|---|---|---|
+| [github-projects-wbs-guide](github-projects-wbs-guide/) | GitHub Projects で WBS と日単位ロードマップを作る操作ガイド（キャプチャ付き） | [開く](https://kotaroyatabe0235.github.io/share/github-projects-wbs-guide/) |
 
-題材は架空の案件（経費精算システム改修）です。ガイド内のサンプル Project へのリンクは非公開のため、本人以外は開けません。
+HTML は GitHub Pages で表示されます。リポジトリ上でファイルを開くとソースが出るので、表の「ページ」のリンクから見てください。
