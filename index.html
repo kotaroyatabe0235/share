@@ -1,0 +1,186 @@
+<title>WBSサンプル操作ガイド</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --ink:#18202C; --muted:#586273; --line:#D9DFE8;
+  --accent:#0E6B66; --accent-soft:#E0F0EE; --warn:#9A5B00; --warn-soft:#FBF0DC;
+  --ok:#1D7A3A; --ng:#A33A2F;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#11151B; --surface:#181D25; --ink:#E4E8EE; --muted:#9AA4B3; --line:#2C3441;
+    --accent:#5CC7BD; --accent-soft:#16312F; --warn:#E3AE5A; --warn-soft:#33281A;
+    --ok:#6BCB85; --ng:#EE8A7F;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#11151B; --surface:#181D25; --ink:#E4E8EE; --muted:#9AA4B3; --line:#2C3441;
+  --accent:#5CC7BD; --accent-soft:#16312F; --warn:#E3AE5A; --warn-soft:#33281A;
+  --ok:#6BCB85; --ng:#EE8A7F;
+}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  font-size:15.5px; line-height:1.8;
+  padding-inline:16px; padding-block:32px 64px;
+}
+.wrap{max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:48px}
+h1,h2,h3{text-wrap:balance; line-height:1.4; margin:0}
+h1{font-size:1.75rem}
+h2{font-size:1.3rem; padding-bottom:8px; border-bottom:2px solid var(--ink)}
+h3{font-size:1.05rem}
+p{margin:0; max-width:65ch}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+code,.ui{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.86em}
+.ui{background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:1px 6px; white-space:nowrap}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.75rem; letter-spacing:.08em; color:var(--accent); text-transform:uppercase}
+header{display:flex; flex-direction:column; gap:12px}
+.lead{color:var(--muted)}
+.note{background:var(--warn-soft); color:var(--ink); border-left:3px solid var(--warn); padding:12px 16px; font-size:.93rem}
+.note b{color:var(--warn)}
+section{display:flex; flex-direction:column; gap:20px}
+.steps{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:36px; counter-reset:s}
+.steps>li{display:grid; grid-template-columns:2.2rem 1fr; gap:4px 14px; counter-increment:s}
+.steps>li::before{
+  content:counter(s); grid-row:1 / span 3;
+  font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.9rem;
+  width:2rem; height:2rem; border-radius:50%; display:grid; place-items:center;
+  background:var(--accent); color:var(--bg);
+}
+.steps>li>*{grid-column:2}
+.steps>li{row-gap:10px}
+figure{margin:0; display:flex; flex-direction:column; gap:6px}
+figure img{display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:6px; background:#fff}
+figure.narrow img{max-width:420px}
+figcaption{font-size:.82rem; color:var(--muted)}
+.cmp{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:520px; background:var(--surface); font-size:.93rem}
+th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top}
+th{background:var(--accent-soft); font-weight:700}
+.y{color:var(--ok); font-weight:700}
+.n{color:var(--ng); font-weight:700}
+.pit{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+.pit div{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:6px}
+.pit h3{font-size:.98rem}
+.pit p{font-size:.9rem; color:var(--muted)}
+footer{font-size:.82rem; color:var(--muted)}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">GitHub Projects · 経費精算システム改修（架空）</span>
+  <h1>WBSサンプル操作ガイド</h1>
+  <p class="lead">GitHub Projects で WBS を表に並べ、日単位のロードマップで見るまでの画面操作をまとめたガイドです。サンプルは <a href="https://github.com/users/kotaroyatabe0235/projects/7">projects/7</a>（非公開、本人のみ閲覧可）にあります。</p>
+  <p class="note"><b>画面について：</b>キャプチャはログインしていない状態で撮っています。そのため右上に <span class="ui">Sign in</span> が見えます。ログインしている本人の画面では、そこがアイコンになります。また設定を変えたとき、メニューに <span class="ui">Save</span> ボタンが出ます。</p>
+</header>
+
+<section>
+  <h2>アプリとブラウザ、どちらで何ができるか</h2>
+  <div class="cmp">
+  <table>
+    <thead><tr><th>やりたいこと</th><th>GitHub Mobile アプリ</th><th>PC のブラウザ</th></tr></thead>
+    <tbody>
+      <tr><td>Project を開いてビューを切り替える</td><td class="y">できる</td><td class="y">できる</td></tr>
+      <tr><td>Status・日付・工数を書き換える</td><td class="y">できる（項目を長押し）</td><td class="y">できる</td></tr>
+      <tr><td>Issue にコメント（実績ログ）を書く</td><td class="y">できる</td><td class="y">できる</td></tr>
+      <tr><td>ロードマップをバーで見る</td><td class="n">できない（リスト表示になる）</td><td class="y">できる</td></tr>
+      <tr><td>並べ替え・グループ・日付フィールドの設定</td><td class="n">できない</td><td class="y">できる</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>アプリは日々の更新に使えます。ロードマップを見たり、ビューを設定したりするのは PC のブラウザで行います。スマホのブラウザでも「PC版サイトを表示」にすれば操作できますが、かなり窮屈です。</p>
+</section>
+
+<section>
+  <h2>WBS表（テーブル）</h2>
+  <ol class="steps">
+    <li>
+      <h3>WBS表を開く</h3>
+      <p>上のタブ <span class="ui">WBS表</span> を選びます。最初に見えるのは大項目（フェーズ）の5行です。行頭の <span class="ui">›</span> を押すと、その下の作業が開きます。親子関係は Issue の「サブイシュー」から自動で組み立てられます。</p>
+      <figure><img src="img/table.png" alt="WBS表。要件定義・設計・実装・テスト・リリースの5行に、WBS番号・Status・開始日・終了日が並ぶ" loading="lazy"><figcaption>大項目だけが並んだ状態。Status は Done / In Progress / Todo の3種類です</figcaption></figure>
+    </li>
+    <li>
+      <h3>WBS番号の順に並べる</h3>
+      <p>列見出し <span class="ui">WBS番号</span> の右にある <span class="ui">…</span> を押し、<span class="ui">Sort ascending</span> を選びます。同じメニューの <span class="ui">Group by values</span> を使うと、その列の値ごとにまとめて表示できます。</p>
+      <figure><img src="img/column-menu.png" alt="WBS番号列の…メニュー。Sort ascending、Sort descending、Filter by values、Group by values、Hide field が並ぶ" loading="lazy"><figcaption>列ごとのメニュー。並べ替え・絞り込み・グループ化・列を隠す、がここからできます</figcaption></figure>
+    </li>
+    <li>
+      <h3>まとめて設定するなら View メニュー</h3>
+      <p>右上の <span class="ui">View</span> を押すと、表示する列（Fields）、グループ、並べ替え、階層表示のオン・オフを一か所で変えられます。並べ替えは2項目まで指定できます。</p>
+      <figure class="narrow"><img src="img/sort-menu.png" alt="Viewメニューから開いたSort byの一覧。Title、Status、WBS番号、開始日、終了日、予定工数(h)、実績工数(h)などが並ぶ" loading="lazy"><figcaption>View → Sort by。自分で作ったフィールド（WBS番号、開始日など）も並べ替えに使えます</figcaption></figure>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>ロードマップ（日単位のバー）</h2>
+  <ol class="steps">
+    <li>
+      <h3>ロードマップを開く（最初はバーが出ない）</h3>
+      <p>タブ <span class="ui">ロードマップ（日単位）</span> を開きます。バーに使う日付フィールドをまだ決めていないので、右側は空です。</p>
+      <figure><img src="img/roadmap-empty.png" alt="ロードマップビュー。左に作業名が並ぶが右のタイムラインにはバーがない" loading="lazy"><figcaption>設定前。赤い縦線が今日です</figcaption></figure>
+    </li>
+    <li>
+      <h3>バーに使う日付を選ぶ</h3>
+      <p><span class="ui">View</span> → <span class="ui">Dates</span> を開き、<b>Start date</b> を <span class="ui">開始日</span>、<b>Target date</b> を <span class="ui">終了日</span> にします。ツールバーの <span class="ui">Date fields</span> からも同じ設定ができます。</p>
+      <figure class="narrow"><img src="img/dates-menu.png" alt="Datesメニュー。Start dateで開始日、Target dateで終了日にチェックが入っている" loading="lazy"><figcaption>上が開始側、下が終了側。今回の要のひとつです</figcaption></figure>
+    </li>
+    <li>
+      <h3>日単位のバーを見る</h3>
+      <p>ズームが <span class="ui">Month</span> なら、1日が1列になります。<span class="ui">Today</span> で今日に戻り、<span class="ui">‹ ›</span> かトラックパッドの横スクロールで前後に動かします。バーの端をドラッグすると、開始日・終了日の値がそのまま書き換わります。</p>
+      <figure><img src="img/roadmap-month.png" alt="Monthズームのロードマップ。10月の日付が1日ずつ並び、要件定義から詳細設計までのバーが階段状に並ぶ" loading="lazy"><figcaption>Month ズーム。2.2 と 2.3 の期間が重なっているのが見て取れます</figcaption></figure>
+    </li>
+    <li>
+      <h3>全体を見渡すときは Quarter</h3>
+      <p><span class="ui">View</span> → <span class="ui">Zoom level</span>、またはツールバーの <span class="ui">Month</span> を押して <span class="ui">Quarter</span> に切り替えると、2か月分が1画面に収まります。ズームは Month・Quarter・Year の3段階で、週や日の単位はありません。</p>
+      <figure><img src="img/roadmap-quarter.png" alt="Quarterズームのロードマップ。10月から11月にかけて全作業のバーが右下がりに並ぶ" loading="lazy"><figcaption>Quarter ズーム。親（例：3 実装）のバーは子の期間とは連動せず、自分の開始日・終了日で描かれます</figcaption></figure>
+    </li>
+    <li>
+      <h3>設定を保存する</h3>
+      <p>ビューの設定を変えると、View メニューの下に <span class="ui">Save</span> と <span class="ui">Discard</span> が出ます。<b>Save を押さないと、ページを開き直したときに元へ戻ります。</b>保存した設定は、この Project を見る全員に反映されます。</p>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>ボードと Issue 側の画面</h2>
+  <ol class="steps">
+    <li>
+      <h3>ボードで状態を動かす</h3>
+      <p>タブ <span class="ui">ボード</span> では、Status ごとに列が分かれます。カードを別の列へドラッグすると Status が変わります。カードには WBS番号・日付・工数と、子の完了数（例：1 / 3）が出ます。</p>
+      <figure><img src="img/board.png" alt="ボードビュー。Todo 13件、In Progress 3件、Done 5件の3列にカードが並ぶ" loading="lazy"><figcaption>Issue を close すると、自動で Done 列に移ります（Project の既定ワークフロー）</figcaption></figure>
+    </li>
+    <li>
+      <h3>Issue でサブイシューを足す</h3>
+      <p>Issue を開くと、本文の下に <span class="ui">Sub-issues</span> 欄があります。ここで子の作業を作ったり、既存の Issue を子としてつないだりできます。右側の <span class="ui">Projects</span> 欄では、この画面のまま Status を変えられます。</p>
+      <figure><img src="img/issue-sub.png" alt="Issue #11 承認ワークフローの画面。Sub-issues欄に3.2.1から3.2.3の3件、右側にProjectsのStatusとParent issueが表示される" loading="lazy"><figcaption>3.2 承認ワークフローの下に 3.2.1〜3.2.3 がぶら下がっています。3段目の階層も作れます</figcaption></figure>
+    </li>
+    <li>
+      <h3>実績ログをコメントで残す（工数記録の方式 B の例）</h3>
+      <p>日付と時間をコメントで積み上げる書き方の例です。履歴が残る代わりに、合計はスクリプトなどで集計する必要があります。累計だけでよければ、Project の <span class="ui">実績工数(h)</span> に数字を上書きするほうが手軽です。</p>
+      <figure><img src="img/issue-log.png" alt="Issue #3 要件定義書作成のコメント欄。実績ログとして10/5 6h、10/6 7h、10/7 5h 指摘反映 が箇条書きされている" loading="lazy"><figcaption>#2, #3, #7, #8 に同じ形式の例を入れてあります</figcaption></figure>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>つまずきやすいところ</h2>
+  <div class="pit">
+    <div><h3>親の期間は自動で変わらない</h3><p>子の日付を動かしても、親の開始日・終了日はそのままです。自動で集計されるのは子の完了数だけです。</p></div>
+    <div><h3>WBS番号は文字として並ぶ</h3><p>「3.10」が「3.2」より前に来ます。10件を超える階層は「3.02」のようにゼロ埋めします。</p></div>
+    <div><h3>ビューの Save 忘れ</h3><p>並べ替えや日付フィールドを変えたら Save を押します。押さないと開き直したときに戻ります。</p></div>
+    <div><h3>依存線と休日はない</h3><p>矢印でつなぐ依存線、土日・祝日の考慮、ベースラインはありません。遅れたら後ろの作業を手で動かします。</p></div>
+  </div>
+</section>
+
+<footer>
+  <p>2026-09-26 作成。サンプルのリポジトリは kotaroyatabe0235/wbs-sample（非公開）。キャプチャのために約9分だけ公開し、非公開に戻しています。</p>
+</footer>
+
+</div>
