@@ -2,4 +2,13 @@
 # 公開リポジトリ用：個人情報・クレデンシャルが入っていたらコミットを止める
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
+# 作成者の欄も公開される。GitHub の匿名アドレス以外では止める
+email="$(git var GIT_AUTHOR_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')"
+cemail="$(git var GIT_COMMITTER_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')"
+for e in "$email" "$cemail"; do
+  case "$e" in
+    *@users.noreply.github.com) ;;
+    *) echo "✗ 作成者のメールアドレスが GitHub の匿名アドレスではない（git config user.email を確認）" >&2; exit 1 ;;
+  esac
+done
 exec "$here/pii-scan" staged
