@@ -64,6 +64,7 @@ th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-
 th{background:var(--accent-soft); font-weight:700}
 .y{color:var(--ok); font-weight:700}
 .n{color:var(--ng); font-weight:700}
+.u{color:var(--muted)}
 .pit{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
 .pit div{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:6px}
 .pit h3{font-size:.98rem}
@@ -89,8 +90,8 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
 <header>
   <span class="eyebrow">GitHub Projects · 経費精算システム改修（架空）</span>
   <h1>WBSサンプル操作ガイド</h1>
-  <p class="lead">GitHub Projects で WBS を表に並べ、日単位のロードマップで見るまでの画面操作をまとめたガイドです。サンプルは <a href="https://github.com/users/kotaroyatabe0235/projects/7">projects/7</a>（非公開、本人のみ閲覧可）にあります。</p>
-  <p class="note"><b>画面について：</b>キャプチャはログインしていない状態で撮っています。そのため右上に <span class="ui">Sign in</span> が見えます。ログインしている本人の画面では、そこがアイコンになります。また設定を変えたとき、メニューに <span class="ui">Save</span> ボタンが出ます。</p>
+  <p class="lead">GitHub Projects で WBS を表に並べ、日単位のロードマップで見るまでの画面操作をまとめたガイドです。サンプルは <a href="https://github.com/users/kotaroyatabe0235/projects/7">projects/7</a>（非公開）にあります。</p>
+  <p class="note"><b>画面について：</b>キャプチャは、ログインしていない状態で撮っています。編集できる本人の画面では、ビューの設定を変えたときに <span class="ui">Save changes</span> が出るなど、一部の表示が異なります。記述の根拠は、ページ末尾の出典（2026-09-26 確認）と、サンプルで実際に操作した結果です。</p>
 </header>
 
 <section id="premise">
@@ -115,7 +116,7 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
     <h3 class="grp">データの置き場所</h3>
     <dl>
       <dt>Issue の実体はリポジトリにある</dt>
-      <dd>Project は Issue を参照して並べているだけです。リポジトリを消すと、その Issue は Project からも消え、Project に入れていた日付や工数の値も一緒になくなります。片付けたいだけならアーカイブ（読み取り専用、元に戻せる）を使います。</dd>
+      <dd>Project は Issue を参照して並べているだけです。Issue を削除すると、Project の行も、Project に入れていた日付や工数の値も一緒に消えます（サンプルで確認）。リポジトリごと削除した場合の Project への影響は、公式ドキュメントに記載がありません（未確認）。片付けたいだけなら、リポジトリのアーカイブ（読み取り専用、元に戻せる）を使います。</dd>
 
       <dt>リポジトリなしで作れるのは「ドラフト」だけ</dt>
       <dd>Project の中で直接作るドラフトは、タイトル・本文・担当・自作フィールドを持てます。ただしラベル・マイルストーンは付けられず、担当者に通知も飛びません。サブイシュー（親子関係）も Issue どうしの機能です。<b>WBS の階層を組むなら、Issue を置くリポジトリが必要です。</b>ドラフトは後から Issue に変換できます。</dd>
@@ -124,7 +125,7 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
       <dd>開始日・終了日・工数・WBS番号は Issue ではなく Project に保存されます。同じ Issue を2つの Project に入れると、値はそれぞれ別になります。フィールドは1つの Project に50個までです。</dd>
 
       <dt>Project はリポジトリではなく、個人か Organization に属する</dt>
-      <dd>1つの Project に、複数のリポジトリの Issue を混ぜられます。仕事で使うなら、最初から Organization の Project として作るのが無難です。所有者を変えたいときはコピーで作り直しますが、コピーに付いてくるのはビュー・フィールド・ドラフト・ワークフローだけです。Issue の行、メンバー、リポジトリとのつながりは付いてきません。</dd>
+      <dd>1つの Project に、複数のリポジトリの Issue を混ぜられます。仕事で使うなら、最初から Organization の Project として作るのが無難です。所有者を変えたいときは、コピーで新しい所有者のもとに作り直します。コピーに付いてくるのは、ビュー、カスタムフィールド、Insights、ワークフロー（自動追加を除く）、それにコピー時に選んだ場合のドラフトとその値です。Issue の行、メンバー、リポジトリとのつながりは付いてきません。</dd>
     </dl>
 
     <h3 class="grp">権限と見え方</h3>
@@ -133,10 +134,10 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
       <dd>Project を公開にしても、非公開リポジトリの Issue は、そのリポジトリの権限を持つ人にしか見えません。</dd>
 
       <dt>Project の権限を与えても、リポジトリの権限は付かない</dt>
-      <dd>Project の権限は Read（見る）・Write（編集）・Admin（メンバー管理も）の3段階です。見る人・更新する人は全員が GitHub アカウントを持ち、Project とリポジトリの両方に権限が必要です。顧客に見せる場合も同じです。</dd>
+      <dd>Project の権限は Read（見る）・Write（編集）・Admin（メンバー管理も）の3段階です。非公開の Project や非公開リポジトリの Issue を見るには、GitHub アカウントと、Project・リポジトリそれぞれの権限が要ります。仕事の WBS は非公開になるはずなので、顧客に見せるなら顧客にもアカウントと招待が必要です。</dd>
 
       <dt>保存したビューの設定は全員に効く</dt>
-      <dd>並べ替えや日付フィールドを変えて Save すると、その Project を見る全員の表示が変わります。自分用の見方が欲しいときは、ビューを別に1つ作ります。</dd>
+      <dd>並べ替えや日付フィールドを変えると、ビュー名の横に未保存の印が付きます。<span class="ui">Save changes</span> を押すまで、変更はほかの人には見えません。保存すると、その Project を見る全員の表示が変わります。自分用の見方が欲しいときは、ビューを別に1つ作ります。</dd>
     </dl>
 
     <h3 class="grp">上限</h3>
@@ -157,10 +158,10 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
       <dd>Issue に「blocked by（待ち）」「blocking（待たせている）」を設定でき、ボードなどに Blocked の印が出ます。ロードマップ上で依存を矢印で結ぶ機能は、ドキュメントに記載がありません。</dd>
 
       <dt>出力は TSV</dt>
-      <dd>ビュー名の横の ▾ から <span class="ui">Export view data</span> を選ぶと、表を TSV で出力でき、Excel でも開けます。ロードマップを図のまま PDF や画像にする機能はありません。</dd>
+      <dd>検索バーの横の <span class="ui">View</span>（歯車）から <span class="ui">Export view data</span> を選ぶと、ビューの中身をタブ区切り（.tsv）で出力できます。公式ドキュメントに載っている出力はこれだけで、ロードマップを図のまま出力する方法は記載がありません。</dd>
 
-      <dt>API で作れるのはビューの枠まで</dt>
-      <dd>ビューの作成、表示する列、フィルタは API で設定できます。並べ替え・グループ・ロードマップの日付フィールドは、画面で設定するしかありません（サンプルを作って確認）。</dd>
+      <dt>ロードマップの日付フィールドだけは画面で設定する</dt>
+      <dd>REST API なら、ビューを作るときにレイアウト・フィルタ・表示する列・並べ替え・グループまで指定できます（GraphQL API で指定できるのは、作成時はレイアウトと表示する列、更新時はそれに加えてフィルタまでで、並べ替え・グループは指定できません）。ロードマップにどの日付フィールドを使うかは、どちらの API にも指定する項目がなく、画面で設定します。</dd>
     </dl>
   </div>
 </section>
@@ -172,14 +173,14 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
     <thead><tr><th>やりたいこと</th><th>GitHub Mobile アプリ</th><th>PC のブラウザ</th></tr></thead>
     <tbody>
       <tr><td>Project を開いてビューを切り替える</td><td class="y">できる</td><td class="y">できる</td></tr>
-      <tr><td>Status・日付・工数を書き換える</td><td class="y">できる（項目を長押し）</td><td class="y">できる</td></tr>
+      <tr><td>Status・日付・工数を書き換える</td><td class="y">できる（項目のフィールド一覧をタップ）</td><td class="y">できる</td></tr>
       <tr><td>Issue にコメント（実績ログ）を書く</td><td class="y">できる</td><td class="y">できる</td></tr>
-      <tr><td>ロードマップをバーで見る</td><td class="n">できない（リスト表示になる）</td><td class="y">できる</td></tr>
-      <tr><td>並べ替え・グループ・日付フィールドの設定</td><td class="n">できない</td><td class="y">できる</td></tr>
+      <tr><td>ロードマップをバーで見る</td><td class="u">公式の案内に記載なし（表はリスト形式で表示される）</td><td class="y">できる</td></tr>
+      <tr><td>並べ替え・グループ・日付フィールドの設定</td><td class="u">公式の案内に記載なし</td><td class="y">できる</td></tr>
     </tbody>
   </table>
   </div>
-  <p>アプリは日々の更新に使えます。ロードマップを見たり、ビューを設定したりするのは PC のブラウザで行います。スマホのブラウザでも「PC版サイトを表示」にすれば操作できますが、かなり窮屈です。</p>
+  <p>アプリは、ビューの切り替え、フィールドの書き換え、コメントといった日々の更新に使えます。公式の案内に書かれているのはここまでです。ロードマップを見る、ビューを設定する、といった作業は PC のブラウザで行う前提にしておくのが確実です。</p>
 </section>
 
 <section>
@@ -208,7 +209,7 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
   <ol class="steps">
     <li>
       <h3>ロードマップを開く（最初はバーが出ない）</h3>
-      <p>タブ <span class="ui">ロードマップ（日単位）</span> を開きます。バーに使う日付フィールドをまだ決めていないので、右側は空です。</p>
+      <p>タブ <span class="ui">ロードマップ（日単位）</span> を開きます。このサンプルでは、バーに使う日付フィールドが決まっていない状態だったので、右側が空でした。</p>
       <figure><img src="img/roadmap-empty.png" alt="ロードマップビュー。左に作業名が並ぶが右のタイムラインにはバーがない" loading="lazy"><figcaption>設定前。赤い縦線が今日です</figcaption></figure>
     </li>
     <li>
@@ -218,17 +219,17 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
     </li>
     <li>
       <h3>日単位のバーを見る</h3>
-      <p>ズームが <span class="ui">Month</span> なら、1日が1列になります。<span class="ui">Today</span> で今日に戻り、<span class="ui">‹ ›</span> かトラックパッドの横スクロールで前後に動かします。バーの端をドラッグすると、開始日・終了日の値がそのまま書き換わります。</p>
+      <p>ズームが <span class="ui">Month</span> なら、1日が1列になります。ツールバーには <span class="ui">Today</span> と <span class="ui">‹ ›</span> のボタンがあり、表示する期間を動かせます。バーをドラッグすると、開始日・終了日の値が書き換わります。</p>
       <figure><img src="img/roadmap-month.png" alt="Monthズームのロードマップ。10月の日付が1日ずつ並び、要件定義から詳細設計までのバーが階段状に並ぶ" loading="lazy"><figcaption>Month ズーム。2.2 と 2.3 の期間が重なっているのが見て取れます</figcaption></figure>
     </li>
     <li>
       <h3>全体を見渡すときは Quarter</h3>
-      <p><span class="ui">View</span> → <span class="ui">Zoom level</span>、またはツールバーの <span class="ui">Month</span> を押して <span class="ui">Quarter</span> に切り替えると、2か月分が1画面に収まります。ズームは Month・Quarter・Year の3段階で、週や日の単位はありません。</p>
-      <figure><img src="img/roadmap-quarter.png" alt="Quarterズームのロードマップ。10月から11月にかけて全作業のバーが右下がりに並ぶ" loading="lazy"><figcaption>Quarter ズーム。親（例：3 実装）のバーは子の期間とは連動せず、自分の開始日・終了日で描かれます</figcaption></figure>
+      <p><span class="ui">View</span> → <span class="ui">Zoom level</span>、またはツールバーの <span class="ui">Month</span> を押して <span class="ui">Quarter</span> に切り替えると、下のキャプチャでは8月下旬から11月下旬まで、約3か月分が1画面に収まっています（目盛りは1週間ごと）。ズームは Month・Quarter・Year の3段階で、週や日の単位はありません。</p>
+      <figure><img src="img/roadmap-quarter.png" alt="Quarterズームのロードマップ。10月から11月にかけて全作業のバーが右下がりに並ぶ" loading="lazy"><figcaption>Quarter ズーム。親（例：3 実装）のバーは、親自身の開始日・終了日で描かれます</figcaption></figure>
     </li>
     <li>
       <h3>設定を保存する</h3>
-      <p>ビューの設定を変えると、View メニューの下に <span class="ui">Save</span> と <span class="ui">Discard</span> が出ます。<b>Save を押さないと、ページを開き直したときに元へ戻ります。</b>保存した設定は、この Project を見る全員に反映されます。</p>
+      <p>ビューの設定を変えると、ビュー名の横に未保存の印が付きます。View メニューから <span class="ui">Save changes</span> を押すと保存され、この Project を見る全員に反映されます。<b>保存しないうちは、変更はほかの人に見えません。</b>メニューには取り消し用の <span class="ui">Discard</span> もあります。</p>
     </li>
   </ol>
 </section>
@@ -257,17 +258,17 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
 <section>
   <h2>つまずきやすいところ</h2>
   <div class="pit">
-    <div><h3>親の期間は自動で変わらない</h3><p>子の日付を動かしても、親の開始日・終了日はそのままです。自動で集計されるのは子の完了数だけです。</p></div>
-    <div><h3>WBS番号は文字として並ぶ</h3><p>「3.10」が「3.2」より前に来ます。10件を超える階層は「3.02」のようにゼロ埋めします。</p></div>
-    <div><h3>ビューの Save 忘れ</h3><p>並べ替えや日付フィールドを変えたら Save を押します。押さないと開き直したときに戻ります。</p></div>
-    <div><h3>自動で日程を組み直さない</h3><p>土日・祝日の考慮、ベースライン、依存関係に合わせた自動調整はありません。遅れたら後ろの作業を手で動かします。</p></div>
-    <div><h3>リポジトリを消すと行も消える</h3><p>Issue の実体はリポジトリにあります。サンプルを片付けるときは、削除ではなくアーカイブにします。</p></div>
+    <div><h3>親の期間は自動で変わらない</h3><p>子の終了日を親より後ろにずらしても、親の開始日・終了日の値はそのままでした（サンプルで確認）。数値フィールド（工数など）は、グループの見出しに合計を出せます（Field sum）。</p></div>
+    <div><h3>WBS番号はテキスト型</h3><p>サンプルの WBS番号はテキスト型のフィールドです。テキスト型の並べ替えの規則はドキュメントに記載がなく、「3.10」と「3.2」の並び順は意図どおりにならない可能性があります（未確認）。10件を超える階層は「3.02」のようにゼロ埋めしておくと安全です。</p></div>
+    <div><h3>ビューの保存忘れ</h3><p>並べ替えや日付フィールドを変えたら <span class="ui">Save changes</span> を押します。押さないと、ほかの人には変更が見えません。</p></div>
+    <div><h3>日程の自動調整は見当たらない</h3><p>土日・祝日の考慮、ベースライン、依存関係に合わせた日程の自動調整は、公式ドキュメントに記載がありません。遅れたら後ろの作業を手で動かす前提で考えます。</p></div>
+    <div><h3>Issue を消すと行も値も消える</h3><p>Issue の実体はリポジトリにあり、削除すると Project の行と値も消えます。サンプルを片付けるときは、削除ではなくリポジトリのアーカイブにします。</p></div>
   </div>
 </section>
 
 <footer>
   <p>2026-09-26 作成。サンプルのリポジトリは kotaroyatabe0235/wbs-sample（非公開）。キャプチャのために約9分だけ公開し、非公開に戻しています。</p>
-  <p>「先に知っておく前提」の出典（GitHub Docs / Changelog）</p>
+  <p>出典（GitHub Docs / GitHub Changelog、2026-09-26 確認）</p>
   <ul>
     <li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects">About Projects</a></li>
     <li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/managing-items-in-your-project/adding-items-to-your-project">Adding items to your project</a>（ドラフト、50,000件）</li>
@@ -277,8 +278,14 @@ dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
     <li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/copying-an-existing-project">Copying an existing project</a></li>
     <li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/customizing-views-in-your-project/customizing-the-roadmap-layout">Customizing the roadmap layout</a></li>
     <li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/managing-your-project/exporting-your-projects-data">Exporting your project data</a></li>
+    <li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/customizing-views-in-your-project/managing-your-views">Managing your views</a>（Save changes）</li>
+    <li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/customizing-views-in-your-project/customizing-the-table-layout">Customizing the table layout</a>（Field sum）</li>
+    <li><a href="https://docs.github.com/en/rest/projects/views">REST API: Project views</a></li>
+    <li><a href="https://docs.github.com/en/repositories/archiving-a-github-repository/archiving-repositories">Archiving repositories</a></li>
+    <li><a href="https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/automating-projects-using-actions">Automating Projects using Actions</a>（複数リポジトリにまたがる Project）</li>
+    <li><a href="https://github.blog/changelog/2022-10-11-on-the-go-with-github-projects-on-github-mobile-public-beta/">On the go with GitHub Projects on GitHub Mobile (public beta)</a>（リスト形式での表示）</li>
     <li><a href="https://github.blog/changelog/2025-08-21-dependencies-on-issues/">Dependencies on issues</a></li>
-    <li><a href="https://github.blog/changelog/2023-03-14-projects-on-github-mobile-is-now-generally-available/">Projects on GitHub Mobile is now generally available</a></li>
+    <li><a href="https://github.blog/changelog/2023-03-14-projects-on-github-mobile-is-now-generally-available/">Projects on GitHub Mobile is now generally available</a>（タップでの編集）</li>
   </ul>
 </footer>
 

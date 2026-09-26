@@ -54,12 +54,15 @@ case "$mode" in
       [ -z "$f" ] && continue
       case "$f" in .githooks/pii-scan) continue ;; esac  # パターン定義そのもの
       if [ "$mode" = staged ]; then blob(){ git show ":$f"; }; else blob(){ cat "$f"; }; fi
-      if blob | LC_ALL=C grep -qI . 2>/dev/null || [ "$(blob | wc -c)" -eq 0 ]; then
-        blob | scan_text "$f"
+      # 一度ファイルに書き出してから判定する（grep -q が途中で抜けると、pipefail で
+      # 書き手側の SIGPIPE が失敗扱いになり、テキストがバイナリと誤判定されるため）
+      tmp="$(mktemp)"; blob > "$tmp"
+      if [ ! -s "$tmp" ] || LC_ALL=C grep -qI . "$tmp" 2>/dev/null; then
+        scan_text "$f" < "$tmp"
+        rm -f "$tmp"
       else
         imgs+=("$f")
         # 写真の位置情報（EXIF GPS）
-        tmp="$(mktemp)"; blob > "$tmp"
         python3 - "$tmp" <<'PY' || say "$f: 画像に位置情報（EXIF GPS）がある、または確認できない"
 import sys
 try:
