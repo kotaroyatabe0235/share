@@ -10,6 +10,8 @@ say(){ printf '✗ %s\n' "$*" >&2; echo 1 > "$FLAG"; }
 
 # 許可する例外（コミットの帰属行など）
 ALLOW='noreply@anthropic\.com|users\.noreply\.github\.com|noreply@github\.com'
+# 住所の検査だけを外すファイル（架空の住所を例に使う資料。本人の確認を経て足す）
+ADDR_EXEMPT=' excel-address-duplicate/index.html '
 PATTERNS=(
   'メールアドレス|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
   '電話番号|(^|[^0-9])0[0-9]{1,4}-[0-9]{1,4}-[0-9]{3,4}([^0-9]|$)|(^|[^0-9])0[789]0[0-9]{8}([^0-9]|$)'
@@ -28,6 +30,7 @@ scan_text(){ # $1=表示名, 標準入力=本文
   for p in "${PATTERNS[@]}"; do
     local label="${p%%|*}" re="${p#*|}" hit ci=-i
     [ "${label:0:1}" = "=" ] && { ci=; label="${label:1}"; }  # 先頭が = のものは大文字小文字を区別
+    case "$label" in 住所らしき表記|町名・丁目) [[ "$ADDR_EXEMPT" == *" $name "* ]] && continue ;; esac
     hit="$(printf '%s\n' "$body" | grep -nE $ci -- "$re" | grep -vEi -- "$ALLOW" | head -3)"
     [ -n "$hit" ] && say "$name: $label" && printf '%s\n' "$hit" | sed 's/^/    /' >&2
   done

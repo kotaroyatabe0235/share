@@ -1,0 +1,185 @@
+<title>住所の重複チェック</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --ink:#18202C; --muted:#586273; --line:#D9DFE8;
+  --accent:#0E6B66; --accent-soft:#E0F0EE; --warn:#9A5B00; --warn-soft:#FBF0DC;
+  --ok:#1D7A3A; --ng:#A33A2F;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#11151B; --surface:#181D25; --ink:#E4E8EE; --muted:#9AA4B3; --line:#2C3441;
+    --accent:#5CC7BD; --accent-soft:#16312F; --warn:#E3AE5A; --warn-soft:#33281A;
+    --ok:#6BCB85; --ng:#EE8A7F;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#11151B; --surface:#181D25; --ink:#E4E8EE; --muted:#9AA4B3; --line:#2C3441;
+  --accent:#5CC7BD; --accent-soft:#16312F; --warn:#E3AE5A; --warn-soft:#33281A;
+  --ok:#6BCB85; --ng:#EE8A7F;
+}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  font-size:15.5px; line-height:1.8;
+  padding-inline:16px; padding-block:32px 64px;
+}
+.wrap{max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:48px}
+h1,h2,h3{text-wrap:balance; line-height:1.4; margin:0}
+h1{font-size:1.75rem}
+h2{font-size:1.3rem; padding-bottom:8px; border-bottom:2px solid var(--ink)}
+h3{font-size:1.05rem}
+p{margin:0; max-width:65ch}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+code,.ui{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.86em}
+.ui{background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:1px 6px; white-space:nowrap}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.75rem; letter-spacing:.08em; color:var(--accent); text-transform:uppercase}
+header{display:flex; flex-direction:column; gap:12px}
+.lead{color:var(--muted)}
+.note{background:var(--warn-soft); color:var(--ink); border-left:3px solid var(--warn); padding:12px 16px; font-size:.93rem}
+.note b{color:var(--warn)}
+section{display:flex; flex-direction:column; gap:20px}
+.steps{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:36px; counter-reset:s}
+.steps>li{display:grid; grid-template-columns:2.2rem 1fr; gap:4px 14px; counter-increment:s}
+.steps>li::before{
+  content:counter(s); grid-row:1 / span 3;
+  font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.9rem;
+  width:2rem; height:2rem; border-radius:50%; display:grid; place-items:center;
+  background:var(--accent); color:var(--bg);
+}
+.steps>li>*{grid-column:2}
+.steps>li{row-gap:10px}
+figure{margin:0; display:flex; flex-direction:column; gap:6px}
+figure img{display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:6px; background:#fff}
+figure.narrow img{max-width:420px}
+figcaption{font-size:.82rem; color:var(--muted)}
+.cmp{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:520px; background:var(--surface); font-size:.93rem}
+th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top}
+th{background:var(--accent-soft); font-weight:700}
+.y{color:var(--ok); font-weight:700}
+.n{color:var(--ng); font-weight:700}
+.u{color:var(--muted)}
+.pit{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+.pit div{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:6px}
+.pit h3{font-size:.98rem}
+.pit p{font-size:.9rem; color:var(--muted)}
+footer{font-size:.82rem; color:var(--muted); display:flex; flex-direction:column; gap:8px}
+footer ul{margin:0; padding-left:1.2em}
+.model{display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:stretch}
+.box{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:4px; font-size:.9rem}
+.box-p{border-color:var(--accent)}
+.box-k{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.75rem; color:var(--muted)}
+.box span:last-child{color:var(--muted)}
+.arrow{align-self:center; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.8rem; color:var(--accent)}
+@media (max-width:560px){.model{grid-template-columns:1fr}.arrow{justify-self:center}}
+.premise{display:flex; flex-direction:column; gap:14px}
+.grp{font-size:.8rem; letter-spacing:.08em; color:var(--accent); font-family:"JetBrains Mono","BIZ UDPGothic",ui-monospace,monospace}
+dl{margin:0; display:flex; flex-direction:column; gap:14px; padding-left:14px; border-left:2px solid var(--line)}
+dt{font-weight:700}
+dd{margin:2px 0 0; color:var(--ink); max-width:65ch; font-size:.94rem}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Excel · CONCATENATE ＋ COUNTIF</span>
+  <h1>3列に分かれた住所の重複チェック</h1>
+  <p class="lead">住所が「都道府県」「市区町村」「町名・番地」のように3列に分かれている表で、同じ住所が2回以上出てくる行を見つける手順です。CONCATENATE で3列を1つの文字列につなぎ、その列を COUNTIF で数えます。</p>
+  <p class="note"><b>根拠について：</b>関数の仕様は、ページ末尾の Microsoft 公式ドキュメント（2026-10-01 確認）によります。Excel で実際に動かしての確認はしていません。サンプルの住所はすべて架空です。</p>
+</header>
+
+<section>
+  <h2>前提の表</h2>
+  <p>1行目が見出し、2行目からデータ。A〜C列に住所が分かれて入っていて、D列とE列を作業用に使います。</p>
+  <div class="cmp"><table>
+    <tr><th></th><th>A 都道府県</th><th>B 市区町村</th><th>C 町名・番地</th><th>D つないだ住所</th><th>E 件数</th></tr>
+    <tr><th>2</th><td>A県</td><td>B市桜町</td><td>1-2-3</td><td>A県B市桜町1-2-3</td><td>2</td></tr>
+    <tr><th>3</th><td>A県</td><td>B市</td><td>桜町1-2-3</td><td>A県B市桜町1-2-3</td><td>2</td></tr>
+    <tr><th>4</th><td>A県</td><td>C市</td><td>4-5-6</td><td>A県C市4-5-6</td><td>1</td></tr>
+  </table></div>
+  <p>2行目と3行目は、区切る位置が違うだけで同じ住所です。つなげてから比べるので、どちらも件数が 2 になります。</p>
+</section>
+
+<section>
+  <h2>手順</h2>
+  <ol class="steps">
+    <li>
+      <h3>D列に3列をつなげる</h3>
+      <p>D2 に次の式を入れ、最終行までコピーします。</p>
+      <p><code>=CONCATENATE(A2,B2,C2)</code></p>
+      <p><code>=A2&amp;B2&amp;C2</code> と書いても同じ結果です。</p>
+    </li>
+    <li>
+      <h3>E列で同じ住所の件数を数える</h3>
+      <p>E2 に次の式を入れ、最終行までコピーします。範囲は <code>$</code> を付けて固定します（付けないとコピーしたときに範囲がずれます）。</p>
+      <p><code>=COUNTIF($D$2:$D$1000,D2)</code></p>
+      <p>1000 はデータの最終行に合わせて変えます。結果が <b>2 以上なら重複</b>、1 なら重複なしです。</p>
+    </li>
+    <li>
+      <h3>重複だけを表示する</h3>
+      <p>見出し行にフィルターをかけ、E列で 1 以外を選べば、重複している行だけが残ります。</p>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>用途に合わせた式</h2>
+  <dl>
+    <dt>「重複」とだけ出したい</dt>
+    <dd><code>=IF(COUNTIF($D$2:$D$1000,D2)&gt;1,"重複","")</code></dd>
+    <dt>1件目は残し、2件目以降だけに印を付けたい</dt>
+    <dd><code>=IF(COUNTIF($D$2:D2,D2)&gt;1,"2件目以降","")</code><br>範囲の始まりだけ固定し、終わりを自分の行までにします。上から数えるので、最初に出てきた行には印が付きません。消すときは印の付いた行だけを消します。</dd>
+    <dt>特定の住所が表にあるか調べたい</dt>
+    <dd>G1〜G3 に調べたい住所を3つに分けて入れ、<code>=COUNTIF($D$2:$D$1000,CONCATENATE(G1,G2,G3))</code>。1 以上ならあります。</dd>
+    <dt>空行に印を付けたくない</dt>
+    <dd><code>=IF(D2="","",COUNTIF($D$2:$D$1000,D2))</code> のように、D列が空文字のときは数えないようにします。A〜C列が空の行で D列が空文字になり、この判定に引っかかるかは未確認です。</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>つまずきやすいところ</h2>
+  <div class="pit">
+    <div><h3>表記ゆれに注意</h3><p>スペースの有無や、「1丁目2番3号」と「1-2-3」のような書き方の違いがあると、同じ住所でも一致しない可能性があります（未確認）。COUNTIF が全角の「１」と半角の「1」を同じとみなすかは、公式ドキュメントに記載がありません（未確認）。下の「表記をそろえてから比べる」を参照してください。</p></div>
+    <div><h3>番地が日付に変わることがある</h3><p>Excel は、入力した数値を日付に自動で変えることがあります（公式ドキュメントの例は「12/2」）。防ぐには、先頭に <code>'</code> を付けて入力します。「1-2-3」のような番地そのものが日付に変わるかは未確認です。つないだ住所に見覚えのない数字が出ていたら、C列の値を確かめてください。</p></div>
+    <div><h3>* ? ~ は特別な意味になる</h3><p>COUNTIF の検索条件では、<code>?</code> は任意の1文字、<code>*</code> は任意の文字列を表します。これらの文字そのものを探すときは前に <code>~</code> を付けます。住所にこれらの半角記号が入っていると、意図しない行まで数えることがあります。</p></div>
+    <div><h3>255文字を超えると正しく数えない</h3><p>COUNTIF は 255 文字より長い文字列の照合で、正しくない結果を返します。つないだ住所がこの長さを超えることはまれですが、備考などまでつなげる場合は注意します。</p></div>
+    <div><h3>CONCATENATE は旧関数の扱い</h3><p>Excel 2016、Excel Mobile、Excel for the web では、CONCATENATE は CONCAT に置き換えられました。CONCATENATE も互換性のために引き続き使えますが、Microsoft は CONCAT の使用を検討するよう勧めています。</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>表記をそろえてから比べる</h2>
+  <p class="note"><b>この節の式は Excel で動作確認していません：</b>使う前に、数行で結果を確かめてください。</p>
+  <p>全角・半角とスペースのゆれをまとめて吸収したい場合の式の例です。D列を次の式にします。</p>
+  <p><code>=SUBSTITUTE(SUBSTITUTE(ASC(CONCATENATE(A2,B2,C2))," ",""),"　","")</code></p>
+  <dl>
+    <dt>ASC</dt>
+    <dd>日本語などの2バイト文字の言語で、全角（2バイト）の文字を半角（1バイト）に変える関数です。記号の「－」が変換の対象になるかは未確認です。</dd>
+    <dt>SUBSTITUTE</dt>
+    <dd>文字列の中の指定した文字を置き換えます。ここでは半角スペースと全角スペースを空文字 <code>""</code> に置き換えて、消すことを狙っています（空文字への置き換えは公式ドキュメントに例がなく、未確認）。</dd>
+  </dl>
+  <p>この式でスペース以外に置き換えているものはないので、「丁目・番・号」と「-」の違いのような書き方のゆれは残ります。数が少なければ、E列が 1 の行を目で見直すのが確実です。</p>
+</section>
+
+<footer>
+  <p>2026-10-01 作成。</p>
+  <p>出典（Microsoft サポート、2026-10-01 確認）</p>
+  <ul>
+    <li><a href="https://support.microsoft.com/ja-jp/office/concatenate-%E9%96%A2%E6%95%B0-8f8ae884-2ca8-4f7a-b093-75d702bea31d">CONCATENATE 関数</a></li>
+    <li><a href="https://support.microsoft.com/ja-jp/office/countif-%E9%96%A2%E6%95%B0-e0de10c6-f885-4e71-abb4-1f464816df34">COUNTIF 関数</a></li>
+    <li><a href="https://support.microsoft.com/ja-jp/office/asc-%E9%96%A2%E6%95%B0-0b6abf1c-c663-4004-a964-ebc00b723266">ASC 関数</a></li>
+    <li><a href="https://support.microsoft.com/ja-jp/office/%E6%95%B0%E5%80%A4%E3%81%8C%E6%97%A5%E4%BB%98%E3%81%AB%E8%87%AA%E5%8B%95%E5%A4%89%E6%9B%B4%E3%81%95%E3%82%8C%E3%81%AA%E3%81%84%E3%82%88%E3%81%86%E3%81%AB%E3%81%99%E3%82%8B-452bd2db-cc96-47d1-81e4-72cec11c4ed8">数値から日付に自動的に変更されないようにする</a></li>
+    <li><a href="https://support.microsoft.com/ja-jp/office/substitute-%E9%96%A2%E6%95%B0-6434944e-a904-4336-a9b0-1e58df3bc332">SUBSTITUTE 関数</a></li>
+    <li><a href="https://support.microsoft.com/ja-jp/office/if-%E9%96%A2%E6%95%B0-69aed7c9-4e8a-4755-a9bc-aa8bbff73be2">IF 関数</a></li>
+    <li><a href="https://support.microsoft.com/ja-jp/office/%E7%9B%B8%E5%AF%BE%E5%8F%82%E7%85%A7-%E7%B5%B6%E5%AF%BE%E5%8F%82%E7%85%A7-%E8%A4%87%E5%90%88%E5%8F%82%E7%85%A7%E3%82%92%E5%88%87%E3%82%8A%E6%9B%BF%E3%81%88%E3%82%8B-dfec08cd-ae65-4f56-839e-5f0d8d0baca9">相対参照、絶対参照、複合参照を切り替える</a></li>
+    <li><a href="https://support.microsoft.com/ja-jp/office/excel-%E3%81%A7%E7%AF%84%E5%9B%B2%E3%81%BE%E3%81%9F%E3%81%AF%E3%83%86%E3%83%BC%E3%83%96%E3%83%AB%E5%86%85%E3%81%AE%E3%83%87%E3%83%BC%E3%82%BF%E3%82%92%E3%83%95%E3%82%A3%E3%83%AB%E3%82%BF%E3%83%BC%E5%87%A6%E7%90%86%E3%81%99%E3%82%8B-01832226-31b5-4568-8806-38c37dcc180e">範囲またはテーブル内のデータをフィルター処理する</a></li>
+  </ul>
+</footer>
+
+</div>
