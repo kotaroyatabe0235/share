@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTPS証明書のしくみ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Antique+Soft&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* 朱は秘密の側（印鑑）、藍は公開の側（印影の見本）。色そのものが意味を持つ。1段組で上から読み、動画と本文が同じ図を使う。 */
+:root {
+  --paper: #f3f5f6;
+  --surface: #ffffff;
+  --ink: #17212b;
+  --muted: #566472;
+  --line: #c6d0d8;
+  --sign: #c8321e;
+  --public: #1f4f8f;
+  --good: #1c7a4b;
+  --bad: #b3261e;
+  --tint-sign: #fbe9e5;
+  --tint-public: #e4edf8;
+  --display: "Zen Antique Soft", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #12181f; --surface: #1b232c; --ink: #e8edf1; --muted: #9fadb9; --line: #36434f;
+    --sign: #ff7a63; --public: #86b4f0; --good: #5ed39a; --bad: #ff8a80;
+    --tint-sign: #3a211d; --tint-public: #1c2d42;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #12181f; --surface: #1b232c; --ink: #e8edf1; --muted: #9fadb9; --line: #36434f;
+  --sign: #ff7a63; --public: #86b4f0; --good: #5ed39a; --bad: #ff8a80;
+  --tint-sign: #3a211d; --tint-public: #1c2d42;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.85; }
+main { max-width: 720px; margin: 0 auto; padding: 28px 18px 64px; display: flex; flex-direction: column; gap: 44px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+h1, h2 { font-family: var(--display); font-weight: 400; text-wrap: balance; line-height: 1.35; margin: 0; }
+h1 { font-size: 34px; }
+h2 { font-size: 25px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+h3 { font-size: 18px; margin: 8px 0 0; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 14px; }
+ul, ol { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 4px; }
+a { color: var(--public); }
+code, .num { font-family: var(--mono); font-size: .92em; font-variant-numeric: tabular-nums; }
+.lead { color: var(--muted); }
+.secret { color: var(--sign); font-weight: 700; }
+.public { color: var(--public); font-weight: 700; }
+pre { margin: 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-family: var(--mono); font-size: 14px; line-height: 1.7; overflow-x: auto; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+figcaption { color: var(--muted); font-size: 15px; }
+svg { display: block; width: 100%; height: auto; }
+.frame { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.note { border-left: 4px solid var(--sign); background: var(--tint-sign); padding: 10px 14px; }
+
+/* 動画プレーヤー */
+.player { display: flex; flex-direction: column; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.player h3 { margin: 0; padding: 12px 16px 0; font-family: var(--display); font-weight: 400; font-size: 20px; }
+.cap { padding: 4px 16px 12px; min-height: 5.6em; }
+.ctrl { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+button { font: inherit; font-size: 15px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer; min-height: 40px; }
+button.main { background: var(--public); border-color: var(--public); color: var(--surface); font-weight: 700; min-width: 92px; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--sign); outline-offset: 2px; }
+.bar { flex: 1 1 120px; height: 8px; border-radius: 4px; background: var(--paper); border: 1px solid var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--public); }
+.count { font-family: var(--mono); font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* 図の部品 */
+.anim .in { animation: pop .5s ease-out both; animation-delay: calc(var(--d, 0) * 1s); }
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .anim .in { animation: none; } }
+svg text { fill: var(--ink); font-family: var(--body); font-size: 15px; }
+svg text.big { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+svg text.mid { font-size: 18px; font-weight: 700; }
+svg text.mono { font-family: var(--mono); font-size: 14px; }
+svg text.small { font-size: 13px; fill: var(--muted); }
+svg text.c-sec { fill: var(--sign); } svg text.c-pub { fill: var(--public); }
+svg text.c-ok { fill: var(--good); } svg text.c-ng { fill: var(--bad); }
+.bx { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.bx.sec { fill: var(--tint-sign); stroke: var(--sign); }
+.bx.pub { fill: var(--tint-public); stroke: var(--public); }
+.bx.ok { stroke: var(--good); stroke-width: 2.5; }
+.bx.ng { stroke: var(--bad); stroke-width: 2.5; }
+.bx.dash { stroke-dasharray: 5 4; }
+.ln { stroke: var(--ink); stroke-width: 1.6; fill: none; }
+.ln.sec { stroke: var(--sign); } .ln.pub { stroke: var(--public); } .ln.ng { stroke: var(--bad); }
+.hd { fill: var(--ink); } .hd.sec { fill: var(--sign); } .hd.pub { fill: var(--public); } .hd.ng { fill: var(--bad); }
+
+/* 試す */
+.lab { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+label { font-size: 15px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+input[type=text] { font-family: var(--mono); font-size: 16px; padding: 8px 10px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 6px; width: 100%; }
+.res { font-family: var(--mono); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; white-space: pre-wrap; }
+.verdict { font-weight: 700; padding: 6px 10px; border-radius: 6px; border: 2px solid currentColor; }
+.verdict.ok { color: var(--good); } .verdict.ng { color: var(--bad); }
+
+.summary { background: var(--tint-public); padding: 14px 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }
+.src { font-size: 15px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>HTTPS証明書のしくみ</h1>
+  <p class="lead">ハッシュ、秘密鍵、署名、認証局。言葉は聞いたことがあるけれど、どうやって動くのかがわからない。そんなときのためのページです。小さな数で計算しながら説明します。</p>
+</header>
+
+<section aria-label="動画">
+  <div class="player" id="player">
+    <div class="frame" style="border:0;border-radius:0" id="stage"></div>
+    <h3 id="ptitle"></h3>
+    <p class="cap" id="pcap"></p>
+    <div class="ctrl">
+      <button id="prev" type="button">前へ</button>
+      <button id="play" class="main" type="button">再生</button>
+      <button id="next" type="button">次へ</button>
+      <div class="bar" aria-hidden="true"><i id="pbar"></i></div>
+      <span class="count" id="pcount"></span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>まず結論</h2>
+  <div class="summary">
+    <p>証明書は、サイトの身分証です。</p>
+    <p>身分証が本物だとわかるのは、認証局の<strong>署名</strong>があるからです。</p>
+    <p>署名は、データの<strong>ハッシュ値</strong>を<span class="secret">秘密鍵</span>で計算した数です。</p>
+    <p>確かめるときは、<span class="public">公開鍵</span>とハッシュ値を使って、署名が正しいかを計算で判定します。このページの小さな RSA では、署名がハッシュ値に戻るかを見ます。</p>
+  </div>
+</section>
+
+<section>
+  <h2>証明書はサイトの身分証</h2>
+  <p>HTTPSには、やることが3つあります。通信を暗号化して、途中で読まれないようにすること。途中の改ざんを検出すること。そして、相手が本物のサイトだと確かめることです。</p>
+  <p>いくら暗号化しても、相手が偽物なら意味がありません。証明書が担当するのは、後のほうの「本物だと確かめる」です。</p>
+  <div data-fig="2" data-cap="証明書の中身。運転免許証と同じで、名前と有効期限があり、発行元の印があります。"></div>
+  <p>TLS 1.3 では、通信を暗号化する鍵は、接続のたびに別のやり取りで作ります。証明書の公開鍵で通信そのものを暗号化するわけではありません。</p>
+  <h3>種類が多く見える理由</h3>
+  <p>分け方の軸がいくつもあるからです。</p>
+  <ul>
+    <li>誰が発行するか。誰のブラウザでも信頼される公開の証明書と、社内など限られた範囲で使うプライベートの証明書があります。</li>
+    <li>どの名前を守るか。1つの名前だけのもの、ワイルドカードで同じ階層の名前をまとめて守るもの、複数の名前を並べて書くものがあります。</li>
+    <li>鍵の方式。RSA と ECDSA があります。</li>
+    <li>発行元がどこまで確かめたか。ドメインの管理だけを確かめる DV と、組織まで確かめる OV や EV があります。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>公開鍵と秘密鍵</h2>
+  <p>2つの鍵は、必ずペアで作ります。秘密鍵は、本人にしか作れない印を作るためにあります。ネットの向こうの相手は顔が見えません。名乗るだけなら誰でもできるので、本人だけができることをやって見せてもらうのです。</p>
+  <div data-fig="3" data-cap="秘密鍵は印鑑、公開鍵は誰でも見られる印影の見本にあたります。見本で照合はできますが、見本では印を押せません。"></div>
+  <p>SSH の鍵と同じです。手元の <code>id_rsa</code> が秘密鍵で、中身をサーバーの <code>authorized_keys</code> に登録する <code>id_rsa.pub</code> が公開鍵です。秘密の側をサーバーへ送りません。</p>
+  <p>分かれ目は1つです。<span class="public">確かめるのに要るものは公開します。</span><span class="secret">署名を作れてしまうものは秘密にします。</span></p>
+</section>
+
+<section>
+  <h2>ハッシュは、データを刻んで混ぜる計算</h2>
+  <p>ハッシュは、文字を数にして、刻んで混ぜるように計算し、短い数にすることです。出てきた数を<strong>ハッシュ値</strong>と呼びます。Java の <code>hashCode()</code> に近い発想です。</p>
+  <p>コンピュータの中では、文字は数です。a は 97、b は 98、c は 99 です。一番簡単なハッシュを作ってみます。全部足して、33で割った余りを出します。</p>
+<pre>"abc"  97 + 98 +  99 = 294   33で割った余り 30
+"abd"  97 + 98 + 100 = 295   33で割った余り 31</pre>
+  <p>この例のハッシュ値は、余りの 30 です。294 は途中の数です。</p>
+  <h3>ハッシュの3つの性質</h3>
+  <ol>
+    <li>同じデータなら、必ず同じ値になります。</li>
+    <li>どんなに長いデータでも、決まった大きさに収まります。</li>
+    <li>結果から元のデータを計算で求めることは、現実的にできません。</li>
+  </ol>
+  <div data-fig="5" data-cap="余りが30とわかっても、元の合計は1つに決まりません。合計が294と決まっても、文字の並びは決まりません。"></div>
+  <p>割る数は秘密ではありません。計算のしかたも全部公開です。ハッシュには鍵がありません。それでも戻せないのは、情報が減るうえ、逆算できないように作ってあるからです。暗号化は鍵で元に戻せるように作ってあり、ハッシュには戻す処理そのものがありません。この点が暗号化と違います。ただし、短いデータや推測しやすいデータは、候補を片端からハッシュにして突き合わせると見つかります。</p>
+  <p>足し算だけのハッシュは弱いです。<code>"acb"</code> も 30 になってしまいます。実際に使う SHA-256 は、ビットをずらして混ぜる処理を64回繰り返します。結果は 256 ビットで、16進数なら64桁です。</p>
+  <div data-fig="4" data-cap="1文字変えただけで、SHA-256 のハッシュ値はまったく別の値に見えるほど変わります。途中を省いて表示しています。"></div>
+  <p>署名でハッシュを使うのは、データそのものが計算するには長すぎるからです。短いハッシュ値に署名しても、同じハッシュ値になる別のデータを見つけることが現実的にできないので、データ全体に署名したのと同じ効き目があります。</p>
+</section>
+
+<section>
+  <h2>署名を手で計算する</h2>
+  <p>実物の RSA という方式を、おもちゃの大きさにして計算します。データは <code>amount=100</code> です。本物の RSA は、ハッシュ値に詰め物（パディング）をしてから計算します。ECDSA は別の計算で、署名から値を戻さずに判定します。ここでは考え方だけを見ます。</p>
+  <h3>手順1 ハッシュ値を出す</h3>
+<pre>SHA-256("amount=100") = e95a8448fe0c...8aa0c6a9
+SHA-256("amount=900") = b6ecc9d5b091...0fcdc83e</pre>
+  <p>この数は小さな鍵には大きすぎます。この例に限って、33で割った余りを使います。本物では、こんな縮め方はしません。</p>
+<pre>amount=100 のハッシュ値 h = 29
+amount=900 のハッシュ値 h = 24</pre>
+  <h3>手順2 鍵のペアを作る</h3>
+<pre>p = 3, q = 11          2つの素数を選ぶ（秘密）
+n = p × q = 33         公開する
+(p-1) × (q-1) = 20     計算にだけ使う（秘密）
+e = 3                  公開鍵の数
+d = 7                  秘密鍵の数
+確かめ: e × d = 21 = 20 × 1 + 1</pre>
+  <p>この例では、e と d を掛けて、20で割ると1余る数を選びます。公開鍵は、本当は 3 と 33 の組です。確かめる計算に33が要るので、33も公開します。</p>
+  <p>p と e がどちらも 3 なのは偶然です。意味はありません。</p>
+  <h3>手順3 署名する</h3>
+<pre>署名 s = h の d 乗 を n で割った余り
+
+1回目  29
+2回目  29 × 29 = 841   余り 16
+3回目  16 × 29 = 464   余り  2
+4回目   2 × 29 =  58   余り 25
+5回目  25 × 29 = 725   余り 32
+6回目  32 × 29 = 928   余り  4
+7回目   4 × 29 = 116   余り 17</pre>
+  <p>署名は 17 です。<code>amount=100</code> と 17 を一緒に送ります。</p>
+  <div data-fig="6" data-cap="送る側の動き。秘密鍵を使うのは、ここだけです。"></div>
+  <h3>手順4 確かめる</h3>
+<pre>戻した値 = s の e 乗 を n で割った余り
+
+1回目  17
+2回目  17 × 17 = 289   余り 25
+3回目  25 × 17 = 425   余り 29</pre>
+  <p>戻した値は 29 です。届いたデータのハッシュ値を自分でも計算すると、29 です。一致したので合格です。</p>
+  <p>ここで戻しているのは、署名からハッシュ値までです。ハッシュ値から文字列へ戻してはいません。元のデータは、署名と一緒に届いています。</p>
+  <div data-fig="8" data-cap="受け取る側の動き。署名から戻した値と、自分で計算した値を比べます。"></div>
+  <h3>手順5 書き換えられたとき</h3>
+  <p>途中で <code>amount=900</code> に書き換えられ、署名の 17 はそのままだったとします。署名から戻した値は 29 で、届いたデータのハッシュ値は 24 です。一致しないので不合格です。</p>
+  <div data-fig="9" data-cap="24 に合う署名は 18 です。鍵が本物の大きさなら、秘密鍵なしで探すことは現実的にできません。この小さな例では、全部試せば見つかります。"></div>
+  <h3>なぜ元に戻るのか</h3>
+<pre>(h の 7 乗) の 3 乗 = h の 21 乗</pre>
+  <p>21 は、20 の倍数に 1 を足した数です。そういう回数だけ掛けて 33 で割ると、元の h に戻るという数学の性質があります。だから「掛けて20で割ると1余る」組を選びます。これは元に戻るための十分な条件です。RSA の仕様の RFC 8017 は、20 の代わりに、2 と 10 の最小公倍数の 10 を使います。条件に合わない組では、元に戻らないことがあります。</p>
+  <p>秘密鍵を 9 にすると、29 の9乗の余りは 8 です。8 の3乗の余りは 17 で、29 に戻りません。3 × 9 = 27 は、10で割ると 7 余るからです。</p>
+  <h3>公開しても安全な理由</h3>
+  <p>20 がわかると、「3に何を掛けると20で割って1余るか」を探すだけで、秘密鍵の 7 が出てしまいます。だから 20 は秘密です。33 から 20 を出すには、33 を 3 と 11 に分解する必要があります。</p>
+  <p>33 ならすぐ分解できますが、2048ビットの RSA では n が10進数で617桁あります。いまの計算機で現実的な時間では分解できないと考えられています。これが「計算上できない」の中身です。</p>
+</section>
+
+<section>
+  <h2>自分で試す</h2>
+  <p>上の小さな鍵で、実際に署名と確認を動かせます。下の欄を書き換えてみてください。ハッシュ値は本物の SHA-256 で計算し、33で割った余りを使います。</p>
+  <div class="lab">
+    <label for="d1">送るデータ（署名する側）<input id="d1" type="text" value="amount=100" autocomplete="off"></label>
+    <label for="d2">届いたデータ（途中で書き換えてみる）<input id="d2" type="text" value="amount=900" autocomplete="off"></label>
+    <div class="res" id="labres"></div>
+    <div class="verdict" id="labv" role="status"></div>
+  </div>
+</section>
+
+<section>
+  <h2>認証局と、署名のつながり</h2>
+  <p>ブラウザが見ているのは、信頼している認証局の署名があること、証明書の名前が接続先と一致すること、有効期限内で失効していないことです。主なブラウザは公開ログへの記録も確かめます。署名はつながっています。大元のルート認証局が中間認証局に署名し、中間認証局がサイトの証明書に署名します。</p>
+  <div data-fig="10" data-cap="ブラウザや OS は、信頼するルートの一覧を持っています。サイトの証明書からルートまで、署名がつながるかをたどります。"></div>
+  <p>Private CA のようなプライベートの証明書が一般公開に向かないのは、発行元がこの一覧に入っていないからです。</p>
+  <h3>ブラウザは2回確かめる</h3>
+  <div data-fig="11" data-cap="1回目は証明書の中身の確認で、中間認証局があれば、つながりの数だけ繰り返します。2回目は、相手がその証明書の持ち主かの確認です。"></div>
+  <p>証明書そのものは公開情報なので、コピーは誰でもできます。でも2回目の確認は、サイトの秘密鍵がないと通りません。証明書で確かめる接続では、署名する内容に接続ごとに変わる値が入るので、昔の署名をコピーしても通りません。</p>
+  <h3>認証局の本当の仕事</h3>
+  <p>署名の計算そのものは一瞬です。仕事の中心は2つあります。申請者が本当にそのドメインを管理しているか確かめること。そして秘密鍵を守ることです。認証局の商品は計算ではなく信用です。</p>
+</section>
+
+<section>
+  <h2>証明書の偽造とは何か</h2>
+  <p>鍵が十分大きく正しく作られていれば、署名を秘密鍵なしで作ることは現実的にできません。そこで、話題になる偽造は別の道を通ります。</p>
+  <ol>
+    <li>自分で作って自分で署名する。一覧につながらないので、ブラウザが警告を出します。</li>
+    <li>認証局をだますか、認証局のミスで、他人のドメインの証明書を出させる。</li>
+    <li>認証局の秘密鍵を手に入れる。署名は本物になるので、署名の確認だけでは見抜けません。主なブラウザは公開ログ（Certificate Transparency）への記録も求めます。記録のない証明書は拒めますが、記録された偽の証明書までは止められません。公開ログは、偽の証明書を見つけやすくするしくみです。記録を確かめないソフトでは、記録のない証明書も通ります。</li>
+  </ol>
+  <h3>実例：eMudhra の秘密鍵の問題（2026年10月）</h3>
+  <p>インドの認証局 eMudhra の中間認証局8件で、秘密鍵の値が極端に小さいことが報告されました。3つ目の道が開いていた例です。</p>
+  <ul>
+    <li>2026年10月17日（協定世界時）に研究者が報告しました。</li>
+    <li>鍵の方式は楕円曲線の P-384 で、本来の秘密鍵は10進で100桁を超える大きさの数です。問題の鍵はどれも256未満の整数でした。4 や 56 や 115 が実例です。公開鍵と照合すると、1秒かからず割り出せます（事実確認のときに実行して確認）。</li>
+    <li>8件のうち6件はサイト用、2件はプログラムの署名用です。</li>
+    <li>Chrome と Firefox がサイト用の中間認証局を遮断し、続いて Apple と Microsoft も対応しました。Mozilla と Chrome は、もとのルートの1つの信頼も取り下げる判断をしました。</li>
+    <li>eMudhra は、世界向けの TLS 証明書の事業から撤退すると発表しました。</li>
+    <li>公表の前に悪用された証拠を、eMudhra は把握していないと説明しています。Chrome は、遮断の前に公開ログへ記録された証明書はなかったと説明しています。公表の後には、第三者がこの鍵で作った証明書が公開ログに記録されています。約10万7千件のうち、約10万6千件は検証用です。実際の攻撃に使われたという一次情報は見つかっていません。悪用がなかったとも確定していません。</li><li>2026年11月3日に確認した時点で、eMudhra は正確な原因を確定していません。</li>
+  </ul>
+  <div data-fig="12" data-cap="鍵が割り出せると、誰でも本物の署名を作れます。対策は、その鍵の証明書を各ブラウザの遮断リストに入れ、もとのルートを信頼の一覧から外すことです。"></div>
+  <p>ルートが一覧から外されると、そのルートにつながる証明書はブラウザに信頼されなくなります。信用が商品である理由が、ここに出ています。</p>
+</section>
+
+<section>
+  <h2>AWS で出てくるところ</h2>
+  <p>CloudFront の利用者向けに ACM の証明書を使うときは、配信元がどのリージョンでも、バージニア北部の us-east-1 で要求かインポートをします。</p>
+  <p>東京のリージョンでも ACM の証明書は発行できます。CloudFront の利用者向けに使えないだけです。オリジンがロードバランサーなら、CloudFront との間の証明書は、そのロードバランサーと同じリージョンで要求かインポートをします。東京の ALB なら東京です。</p>
+  <div data-fig="13" data-cap="接続は2本あり、証明書も別々に考えます。ALB に付けた証明書は、利用者と CloudFront の間には効きません。"></div>
+  <p>ACM が発行した通常の証明書では、ACM は秘密鍵を利用者に渡しません。秘密鍵を書き出せる証明書を別に選ぶこともできます。</p>
+</section>
+
+<section>
+  <h2>よくある勘違い</h2>
+  <ul>
+    <li>ハッシュは暗号化ではありません。鍵がなく、復号という処理がありません。</li>
+    <li>割る数や計算方法は、秘密ではありません。</li>
+    <li>RSA の確認で戻しているのは、署名から、詰め物を含む値までです。PKCS#1 v1.5 ではその中にハッシュ値が入っています。PSS ではハッシュ値から作った値が入っています。どちらも元のデータへは戻しません。ECDSA では値を戻さず、別の計算で判定します。</li>
+    <li>証明書はコピーできます。秘密鍵が持ち主の外に出ないことが大事です。</li>
+    <li>認証局の秘密鍵と、サイトの秘密鍵は別のものです。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>出典</h2>
+  <p>確認日は 2026年11月3日です。このページの計算の例と、eMudhra の鍵の値は、実行して確かめました。</p>
+  <ul class="src" id="sources">
+    <li><a href="https://www.rfc-editor.org/rfc/rfc8446">RFC 8446 TLS 1.3</a></li>
+    <li><a href="https://csrc.nist.gov/pubs/fips/180-4/upd1/final">FIPS 180-4 SHA-256</a></li>
+    <li><a href="https://www.rfc-editor.org/rfc/rfc8017">RFC 8017 RSA</a></li>
+    <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cnames-and-https-requirements.html">Amazon CloudFront の証明書の要件</a></li>
+    <li><a href="https://docs.aws.amazon.com/acm/latest/userguide/acm-services.html">AWS Certificate Manager の連携サービス</a></li>
+    <li><a href="https://aws.amazon.com/certificate-manager/faqs/">AWS Certificate Manager のよくある質問</a></li>
+    <li><a href="https://docs.aws.amazon.com/acm/latest/userguide/acm-exportable-certificates.html">ACM の書き出しできる証明書</a></li>
+    <li><a href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf">FIPS 186-5 デジタル署名（ECDSA）</a></li>
+    <li><a href="https://www.rfc-editor.org/rfc/rfc5280">RFC 5280 証明書の形式</a></li>
+    <li><a href="https://www.rfc-editor.org/rfc/rfc6962">RFC 6962 Certificate Transparency</a></li>
+    <li><a href="https://www.rfc-editor.org/rfc/rfc9525">RFC 9525 証明書の名前の照合</a></li>
+    <li><a href="https://cabforum.org/working-groups/server/baseline-requirements/requirements/">CA/Browser Forum Baseline Requirements</a></li>
+    <li><a href="https://googlechrome.github.io/CertificateTransparency/ct_policy.html">Chrome の Certificate Transparency の方針</a></li>
+    <li><a href="https://wiki.mozilla.org/SecurityEngineering/Certificate_Transparency">Firefox の Certificate Transparency</a></li>
+    <li><a href="https://support.apple.com/en-us/103214">Apple の Certificate Transparency の方針</a></li>
+    <li><a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf">NIST SP 800-57 Part 1 鍵の強さ</a></li>
+    <li><a href="https://docs.aws.amazon.com/acm/latest/userguide/acm-public-certificates.html">ACM の公開証明書</a></li>
+    <li><a href="https://bugzilla.mozilla.org/show_bug.cgi?id=2083449">Mozilla Bugzilla の eMudhra の記録</a></li>
+    <li><a href="https://groups.google.com/a/mozilla.org/g/dev-security-policy/c/0R3XLJL6FuE">dev-security-policy の議論</a></li>
+    <li><a href="https://blog.mozilla.org/security/2026/10/20/protecting-firefox-users-following-the-compromise-of-emudhra-intermediate-certificates/">Mozilla の発表</a></li>
+    <li><a href="https://blog.google/security/protecting-chrome-and-android-users-from-compromised-emudhra-intermediate-ca-certificates/">Google の発表</a></li>
+    <li><a href="https://support.apple.com/en-us/149555">Apple の発表</a></li>
+    <li><a href="https://www.microsoft.com/en-us/msrc/blog/2026/10/microsoft-response-to-compromised-emudhra-certificate-authority-keys">Microsoft の発表</a></li>
+    <li><a href="https://emudhra.com/en/post/certificate-security-incident">eMudhra の説明</a></li>
+    <li><a href="https://emudhra.com/en/press-release/emudhra-to-exit-global-ssl-tls-certificate-business">eMudhra の事業撤退の発表</a></li>
+  </ul>
+</section>
+
+</main>
+
+<script>
+/* 図の部品 */
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const T = (x, y, s, c = '', d = 0, a = 'middle') => `<text x="${x}" y="${y}" text-anchor="${a}" class="in ${c}" style="--d:${d}">${esc(s)}</text>`;
+const B = (x, y, w, h, c = '', d = 0) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" class="in bx ${c}" style="--d:${d}"/>`;
+const A = (x1, y1, x2, y2, c = '', d = 0) => {
+  const ang = Math.atan2(y2 - y1, x2 - x1), L = 10;
+  const p = o => `${(x2 - L * Math.cos(ang + o)).toFixed(1)},${(y2 - L * Math.sin(ang + o)).toFixed(1)}`;
+  return `<g class="in" style="--d:${d}"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="ln ${c}"/><polygon points="${x2},${y2} ${p(.45)} ${p(-.45)}" class="hd ${c}"/></g>`;
+};
+/* 文字つきの箱 */
+const L = (x, y, w, h, s, c = '', d = 0, tc = '') => B(x, y, w, h, c, d) + T(x + w / 2, y + h / 2 + 5, s, tc, d);
+
+const scenes = [
+  { t: '顔の見えない相手', dur: 6, cap: 'ブラウザは、接続した相手が本物のサイトかどうかを、見ただけでは判断できません。偽のサイトも同じように名乗れます。',
+    d: () => L(30, 110, 120, 60, 'ブラウザ') + A(155, 125, 318, 70, '', .5) + T(235, 82, '接続', 'small', .5) + L(320, 40, 130, 60, '本物のサイト', '', .3)
+      + A(155, 155, 318, 210, '', 1) + L(320, 180, 130, 60, '偽のサイト', 'dash', .9) + T(90, 225, 'どっちが本物？', 'mid c-sec', 1.6) },
+  { t: '証明書は身分証', dur: 7, cap: '証明書には、ドメイン名、有効期限、公開鍵、発行元の署名が入っています。信じられる根拠は、最後の署名です。',
+    d: () => B(90, 24, 300, 232) + T(240, 54, '証明書', 'mid', .1)
+      + T(112, 94, '名前', 'small', .5, 'start') + T(190, 94, 'example.com', 'mono', .5, 'start')
+      + T(112, 132, '有効期限', 'small', 1, 'start') + T(190, 132, '〜 2027-05-01', 'mono', 1, 'start')
+      + T(112, 170, '公開鍵', 'small', 1.5, 'start') + T(190, 170, 'サイトの公開鍵', 'c-pub', 1.5, 'start')
+      + T(112, 212, '発行元の署名', 'small', 2.1, 'start') + `<circle cx="290" cy="208" r="26" class="in bx sec" style="--d:2.1"/>` + T(290, 213, '認証局', 'c-sec', 2.1) },
+  { t: '鍵は2本でペア', dur: 7, cap: '秘密鍵は持ち主だけが持ち、署名を作ります。公開鍵はみんなに配ってよく、署名の場面では確かめることにしか使いません。',
+    d: () => B(24, 50, 195, 180, 'sec') + T(121, 88, '秘密鍵', 'mid c-sec', .2) + T(121, 130, '印鑑にあたる', '', .4) + T(121, 165, '持ち主だけが持つ', '', .6) + T(121, 200, '署名を作る', '', .8)
+      + B(261, 50, 195, 180, 'pub', 1.2) + T(358, 88, '公開鍵', 'mid c-pub', 1.3) + T(358, 130, '印影の見本にあたる', '', 1.5) + T(358, 165, '誰に配ってもよい', '', 1.7) + T(358, 200, '確かめる側', '', 1.9)
+      + T(240, 145, 'ペア', 'small', 2.3) },
+  { t: 'ハッシュは刻んで混ぜる計算', dur: 7, cap: 'データを刻んで混ぜて、決まった長さの数にします。出てきた数がハッシュ値です。1文字変わると、まったく別の値に見えるほど変わります。',
+    d: () => L(14, 40, 130, 56, 'amount=100', '', .1, 'mono') + A(148, 68, 192, 68, '', .6) + L(196, 40, 90, 56, 'SHA-256', 'pub', .8) + A(290, 68, 330, 68, '', 1.2) + T(334, 73, 'e95a8448…', 'mono', 1.4, 'start')
+      + L(14, 170, 130, 56, 'amount=900', '', 2, 'mono') + A(148, 198, 192, 198, '', 2.4) + L(196, 170, 90, 56, 'SHA-256', 'pub', 2.5) + A(290, 198, 330, 198, '', 2.8) + T(334, 203, 'b6ecc9d5…', 'mono', 3, 'start')
+      + T(240, 142, '1文字違うだけで大きく変わる', 'mid c-sec', 3.5) },
+  { t: 'ハッシュは元に戻せない', dur: 7, cap: 'この足し算の例では、割る数がわかっていても戻せません。余りが30の合計は無数にあり、合計が決まっても文字の並びが決まらないからです。',
+    d: () => L(370, 100, 90, 70, '30', '', .1, 'big') + T(415, 190, 'ハッシュ値', 'small', .1)
+      + A(366, 135, 262, 62, 'ng', .7) + A(366, 135, 262, 135, 'ng', .9) + A(366, 135, 262, 208, 'ng', 1.1)
+      + L(196, 40, 62, 40, '261', '', .7, 'mono') + L(196, 115, 62, 40, '294', '', .9, 'mono') + L(196, 188, 62, 40, '327', '', 1.1, 'mono')
+      + A(192, 135, 112, 72, 'ng', 1.7) + A(192, 135, 112, 135, 'ng', 1.9) + A(192, 135, 112, 198, 'ng', 2.1)
+      + T(60, 77, 'abc', 'mono', 1.7) + T(60, 140, 'acb', 'mono', 1.9) + T(60, 203, 'cba', 'mono', 2.1)
+      + T(240, 266, '候補が多すぎて1つに戻せない', 'mid c-sec', 2.8) },
+  { t: '署名を作る', dur: 7, cap: 'データのハッシュ値は 29 です。これを秘密鍵の 7 で計算します。29 を7回掛けて33で割った余りは 17 です。これが署名です。',
+    d: () => L(8, 100, 104, 60, 'amount=100', '', .1, 'mono') + A(114, 130, 150, 130, '', .6) + T(132, 90, 'ハッシュ', 'small', .6)
+      + L(152, 100, 56, 60, '29', '', .9, 'big') + A(210, 130, 240, 130, 'sec', 1.4)
+      + B(242, 92, 126, 76, 'sec', 1.7) + T(305, 124, '秘密鍵 7', 'c-sec', 1.7) + T(305, 148, 'で計算', 'c-sec', 1.7) + A(370, 130, 398, 130, 'sec', 2.3)
+      + L(400, 100, 70, 60, '17', 'sec', 2.6, 'big c-sec') + T(435, 182, '署名', 'mid c-sec', 2.8) + T(240, 228, '鍵が本物の大きさなら、秘密鍵なしでは作れない', 'mid', 3.5) },
+  { t: 'データと署名を一緒に送る', dur: 5, cap: 'データの amount=100 と、署名の 17 を一緒に送ります。秘密鍵は送りません。',
+    d: () => L(20, 100, 120, 70, '送る側') + A(146, 135, 334, 135, '', .4) + L(340, 100, 120, 70, '受け取る側') + B(174, 60, 132, 56, '', 1) + T(240, 84, 'amount=100', 'mono', 1) + T(240, 106, '署名 17', 'c-sec', 1) + T(240, 200, '秘密鍵は送らない', 'mid c-sec', 1.8) },
+  { t: '署名を確かめる', dur: 7, cap: '署名の 17 を公開鍵の 3 で計算すると 29 に戻ります。届いたデータのハッシュ値も 29 です。2つが一致したので合格です。',
+    d: () => L(8, 44, 66, 56, '17', 'sec', .1, 'big c-sec') + A(76, 72, 112, 72, 'pub', .5) + B(114, 40, 120, 64, 'pub', .7) + T(174, 67, '公開鍵 3', 'c-pub', .7) + T(174, 89, 'で計算', 'c-pub', .7) + A(236, 72, 272, 72, 'pub', 1.2) + L(274, 44, 60, 56, '29', '', 1.5, 'big')
+      + L(8, 176, 112, 56, 'amount=100', '', 2, 'mono') + A(122, 204, 268, 204, '', 2.4) + T(195, 194, '自分でハッシュ', 'small', 2.4) + L(274, 176, 60, 56, '29', '', 2.7, 'big')
+      + B(366, 104, 106, 70, 'ok', 3.4) + T(419, 133, '一致', 'mid c-ok', 3.4) + T(419, 158, '合格', 'mid c-ok', 3.8) + A(336, 72, 400, 100, '', 3.2) + A(336, 204, 400, 178, '', 3.2) },
+  { t: '書き換えられたとき', dur: 7, cap: '途中で amount=900 に書き換えると、ハッシュ値は 24 になります。署名から戻した 29 と合わないので不合格です。',
+    d: () => L(8, 44, 66, 56, '17', 'sec', .1, 'big c-sec') + A(76, 72, 112, 72, 'pub', .4) + B(114, 40, 120, 64, 'pub', .5) + T(174, 67, '公開鍵 3', 'c-pub', .5) + T(174, 89, 'で計算', 'c-pub', .5) + A(236, 72, 272, 72, 'pub', .9) + L(274, 44, 60, 56, '29', '', 1.1, 'big')
+      + L(8, 176, 112, 56, 'amount=900', 'ng', 1.6, 'mono c-ng') + A(122, 204, 268, 204, '', 2) + T(195, 194, '自分でハッシュ', 'small', 2) + L(274, 176, 60, 56, '24', 'ng', 2.3, 'big c-ng')
+      + B(366, 104, 106, 70, 'ng', 3) + T(419, 133, '不一致', 'mid c-ng', 3) + T(419, 158, '不合格', 'mid c-ng', 3.4) + A(336, 72, 400, 100, '', 2.8) + A(336, 204, 400, 178, '', 2.8) },
+  { t: '署名はつながっている', dur: 7, cap: 'ルート認証局が中間認証局に、中間認証局がサイトの証明書に署名します。ブラウザは、自分の一覧にあるルートまでたどります。',
+    d: () => L(14, 150, 134, 66, 'ルート認証局', 'pub', .1, 'c-pub') + A(152, 183, 192, 183, 'sec', .7) + T(172, 171, '署名', 'small c-sec', .7)
+      + L(194, 150, 110, 66, '中間認証局', '', 1) + A(308, 183, 348, 183, 'sec', 1.5) + T(328, 171, '署名', 'small c-sec', 1.5)
+      + L(350, 150, 116, 66, 'サイトの証明書', '', 1.8)
+      + B(14, 28, 134, 84, 'pub', 2.4) + T(81, 52, 'ブラウザの一覧', 'c-pub', 2.4) + T(81, 94, 'このルートを信頼', 'small', 2.6) + A(81, 114, 81, 146, 'pub', 2.8)
+      + T(240, 250, 'サイトからルートまで、たどって確かめる', 'mid', 3.4) },
+  { t: 'ブラウザは2回確かめる', dur: 8, cap: '1回目は認証局の公開鍵で証明書の署名を確かめます。2回目は証明書の中の公開鍵で、サイトが接続ごとに作った署名を確かめます。',
+    d: () => T(14, 36, '1回目　証明書は本物か', 'mid', .1, 'start') + L(14, 50, 134, 56, '証明書の署名', 'sec', .4, 'c-sec') + A(152, 78, 190, 78, 'pub', .9) + L(192, 50, 170, 56, '認証局の公開鍵', 'pub', 1.1, 'c-pub') + A(366, 78, 396, 78, 'pub', 1.5) + T(432, 84, '一致', 'mid c-ok', 1.8)
+      + T(14, 164, '2回目　相手は持ち主か', 'mid', 2.5, 'start') + L(14, 178, 134, 56, 'サイトの署名', 'sec', 2.8, 'c-sec') + A(152, 206, 190, 206, 'pub', 3.3) + L(192, 178, 170, 56, '証明書の公開鍵', 'pub', 3.5, 'c-pub') + A(366, 206, 396, 206, 'pub', 3.9) + T(432, 212, '一致', 'mid c-ok', 4.2)
+      + T(240, 266, 'サイトの署名は接続ごとに変わる', 'small', 4.8) },
+  { t: '認証局の鍵が割り出されると', dur: 8, cap: '認証局の秘密鍵を手に入れると、どのサイトの証明書でも本物の署名付きで作れます。対策は、その鍵の証明書を各ブラウザの遮断リストに入れ、もとのルートを信頼の一覧から外すことです。',
+    d: () => L(8, 60, 112, 64, '弱い秘密鍵', 'sec', .1, 'c-sec') + A(122, 92, 180, 92, 'sec', .7) + T(150, 80, '割り出す', 'small c-sec', .7) + L(182, 60, 92, 64, '攻撃者', 'dash', 1) + A(276, 92, 328, 92, 'ng', 1.6) + L(330, 60, 142, 64, '偽の証明書', 'ng', 1.9, 'c-ng')
+      + T(405, 146, '署名は本物', 'mid c-ng', 2.5) + L(150, 180, 180, 60, '遮断と一覧からの削除', 'ok', 3.6, 'c-ok') + A(334, 210, 405, 158, 'ng', 4.2) + T(240, 268, 'ブラウザが遮断する', 'mid', 4.6) },
+  { t: 'AWS では2本の接続', dur: 7, cap: 'ACM を使うなら、利用者と CloudFront の間は us-east-1 の証明書、CloudFront と ALB の間は ALB に付ける証明書です。接続が別なので、証明書も別に考えます。',
+    d: () => L(8, 96, 100, 64, '利用者') + A(112, 128, 182, 128, 'pub', .5) + L(186, 96, 112, 64, 'CloudFront', '', .8) + A(302, 128, 372, 128, 'pub', 1.4) + L(376, 96, 96, 64, 'ALB', '', 1.7)
+      + T(145, 76, '接続1', 'mid', 2.2) + T(337, 76, '接続2', 'mid', 2.4)
+      + L(30, 190, 210, 56, 'us-east-1 の ACM 証明書', 'pub', 2.9, 'c-pub') + A(145, 188, 145, 136, 'pub', 3.3)
+      + L(262, 190, 196, 56, 'ALB に付ける証明書', 'pub', 3.7, 'c-pub') + A(337, 188, 337, 136, 'pub', 4.1) },
+];
+
+const svgOf = (i, cls) => `<svg viewBox="0 0 480 280" role="img" aria-label="${esc(scenes[i].t)}。${esc(scenes[i].cap)}" class="${cls}">${scenes[i].d()}</svg>`;
+
+/* 本文の図：番号はシーンの順に1から数える */
+document.querySelectorAll('[data-fig]').forEach(el => {
+  const i = +el.dataset.fig - 1;
+  el.innerHTML = `<figure><div class="frame">${svgOf(i, '')}</div><figcaption>${esc(el.dataset.cap)}</figcaption></figure>`;
+});
+
+/* プレーヤー */
+const $ = id => document.getElementById(id);
+let cur = 0, playing = false, timer = null, started = 0, spent = 0;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function total() { return scenes.reduce((a, s) => a + s.dur, 0); }
+function before(i) { return scenes.slice(0, i).reduce((a, s) => a + s.dur, 0); }
+function show(i, animate) {
+  cur = i;
+  $('stage').innerHTML = svgOf(i, animate ? 'anim' : '');
+  $('ptitle').textContent = scenes[i].t;
+  $('pcap').textContent = scenes[i].cap;
+  $('pcount').textContent = `${i + 1} / ${scenes.length}`;
+  $('pbar').style.width = (before(i) / total() * 100) + '%';
+}
+function schedule() {
+  clearTimeout(timer);
+  started = performance.now();
+  timer = setTimeout(() => {
+    spent = 0;
+    if (cur + 1 < scenes.length) { show(cur + 1, true); schedule(); tick(); } else { stop(); $('pbar').style.width = '100%'; }
+  }, (scenes[cur].dur * 1000) - spent);
+}
+function tick() {
+  if (!playing) return;
+  const now = spent + performance.now() - started;
+  $('pbar').style.width = ((before(cur) + Math.min(now / 1000, scenes[cur].dur)) / total() * 100) + '%';
+  requestAnimationFrame(tick);
+}
+function start() { playing = true; $('play').textContent = '一時停止'; schedule(); tick(); }
+function stop() { playing = false; clearTimeout(timer); $('play').textContent = '再生'; }
+$('play').addEventListener('click', () => {
+  if (playing) { spent += performance.now() - started; stop(); return; }
+  if (cur === scenes.length - 1 && $('pbar').style.width === '100%') { spent = 0; show(0, true); } else if (spent === 0) { show(cur, true); }
+  start();
+});
+function go(i) { spent = 0; show(i, true); if (playing) schedule(); }
+$('next').addEventListener('click', () => go(Math.min(cur + 1, scenes.length - 1)));
+$('prev').addEventListener('click', () => go(Math.max(cur - 1, 0)));
+show(0, false);
+
+/* SHA-256（FIPS 180-4）。ブラウザの制限で crypto.subtle が使えない環境でも動くように、ここで計算する */
+function sha256(str) {
+  const K = [], H = [];
+  const frac = (x, n) => Math.floor((x - Math.floor(x)) * 2 ** n) >>> 0;
+  for (let p = 2, c = 0; c < 64; p++) {
+    let prime = true;
+    for (let i = 2; i * i <= p; i++) if (p % i === 0) { prime = false; break; }
+    if (prime) { if (c < 8) H[c] = frac(p ** (1 / 2), 32); K[c++] = frac(p ** (1 / 3), 32); }
+  }
+  const b = [...new TextEncoder().encode(str)], bits = b.length * 8;
+  b.push(0x80); while (b.length % 64 !== 56) b.push(0);
+  const hi = Math.floor(bits / 2 ** 32), lo = bits >>> 0;
+  for (const v of [hi, lo]) b.push(v >>> 24, (v >>> 16) & 255, (v >>> 8) & 255, v & 255);
+  const R = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let o = 0; o < b.length; o += 64) {
+    const w = [];
+    for (let t = 0; t < 16; t++) w[t] = ((b[o + t * 4] << 24) | (b[o + t * 4 + 1] << 16) | (b[o + t * 4 + 2] << 8) | b[o + t * 4 + 3]) >>> 0;
+    for (let t = 16; t < 64; t++) {
+      const s0 = R(w[t - 15], 7) ^ R(w[t - 15], 18) ^ (w[t - 15] >>> 3), s1 = R(w[t - 2], 17) ^ R(w[t - 2], 19) ^ (w[t - 2] >>> 10);
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
+    }
+    let [a, bb, c, d, e, f, g, h] = H;
+    for (let t = 0; t < 64; t++) {
+      const S1 = R(e, 6) ^ R(e, 11) ^ R(e, 25), ch = (e & f) ^ (~e & g), t1 = (h + S1 + ch + K[t] + w[t]) >>> 0;
+      const S0 = R(a, 2) ^ R(a, 13) ^ R(a, 22), mj = (a & bb) ^ (a & c) ^ (bb & c), t2 = (S0 + mj) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = bb; bb = a; a = (t1 + t2) >>> 0;
+    }
+    [a, bb, c, d, e, f, g, h].forEach((v, i) => { H[i] = (H[i] + v) >>> 0; });
+  }
+  return H.map(v => v.toString(16).padStart(8, '0')).join('');
+}
+const mod33 = hex => { let r = 0; for (const c of hex) r = (r * 16 + parseInt(c, 16)) % 33; return r; };
+const pw = (x, k) => { let r = 1; for (let i = 0; i < k; i++) r = r * x % 33; return r; };
+function lab() {
+  const a = $('d1').value, b = $('d2').value, ha = sha256(a), hb = sha256(b), h1 = mod33(ha), h2 = mod33(hb), s = pw(h1, 7), back = pw(s, 3);
+  $('labres').textContent =
+`送るデータの SHA-256
+${ha}
+33で割った余り h = ${h1}
+署名 s = ${h1} の7乗 を 33 で割った余り = ${s}
+
+届いたデータの SHA-256
+${hb}
+33で割った余り = ${h2}
+署名から戻す = ${s} の3乗 を 33 で割った余り = ${back}`;
+  const ok = back === h2, same = a === b;
+  $('labv').className = 'verdict ' + (ok ? 'ok' : 'ng');
+  $('labv').textContent = ok ? (same ? `${back} と ${h2} が一致。合格です。` : `${back} と ${h2} が一致。合格です。ただしデータは違います。余りは33通りしかないので、おもちゃの大きさでは偶然そろいます。`) : `${back} と ${h2} が一致しません。不合格です。`;
+}
+$('d1').addEventListener('input', lab);
+$('d2').addEventListener('input', lab);
+lab();
+</script>
+</body>
+</html>
