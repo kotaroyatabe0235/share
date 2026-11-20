@@ -13,7 +13,7 @@
 </header>
 
 <main id="list-view" hidden>
-  <p class="lead">見本のコードを、自分の手で打ちながら学びます。Web の基礎から始めて、Three.js での3Dゲームづくりまで進む予定です。打った行が見本と合っているかは、その場でわかります。実行ボタンで、打ったコードの結果が見られます。</p>
+  <p class="lead">見本のコードを、自分の手で打ちながら学びます。JavaScript の基本から始めて、Three.js での3Dゲームづくりまで進む予定です。打った行が見本と合っているかは、その場でわかります。実行ボタンで、打ったコードの結果が見られます。</p>
   <ol id="lesson-list" class="lesson-list"></ol>
   <p class="muted small">進み具合は、このブラウザの中にだけ保存されます。別の端末やブラウザには引き継がれません。保存が使えない設定のブラウザでは、保存されません。</p>
 </main>
@@ -25,6 +25,7 @@
     <div id="step-body" class="body"></div>
     <h2 class="label">見本 <span class="muted small">色のついた行が、この歩で増えた行</span></h2>
     <pre id="sample" class="code sample"></pre>
+    <div id="removed" class="box removed" hidden></div>
     <div id="step-care" class="box care"></div>
     <div id="step-try" class="box try"></div>
   </section>
@@ -52,6 +53,11 @@
       <button type="button" data-ins=")">)</button>
       <button type="button" data-ins="'">'</button>
       <button type="button" data-ins="!">!</button>
+      <button type="button" data-ins="[">[</button>
+      <button type="button" data-ins="]">]</button>
+      <button type="button" data-ins="`">`</button>
+      <button type="button" data-ins="$">$</button>
+      <button type="button" data-ins="=>">=&gt;</button>
       <button type="button" data-ins="  ">字下げ</button>
     </div>
     <div class="editor">

@@ -1,7 +1,7 @@
-// 写経のページの動き。サーバーは使わず、ブラウザの中だけで動く。
+// 写経のページの動き。サーバー側のプログラムは使わず、ブラウザの中だけで動く。
 
 // 回の一覧。回を足すときは、lessons/ にファイルを置いて、ここに1行足す。
-const LESSON_IDS = ['01-page'];
+const LESSON_IDS = ['01-js', '02-dom', '03-three'];
 
 const STORE_KEY = 'threejs-game:shakyo:v1';
 
@@ -26,8 +26,8 @@ async function getLesson(id) {
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-// 前の歩のコードと比べて、この歩で増えた行の番号を返す（行ごとの最長共通部分列）。
-function addedLines(before, after) {
+// 前の歩のコードと比べて、この歩で増えた行の番号と、消えた行の中身を返す（行ごとの最長共通部分列）。
+function diffLines(before, after) {
   const A = before === '' ? [] : before.split('\n');
   const B = after.split('\n');
   const n = A.length, m = B.length;
@@ -38,13 +38,14 @@ function addedLines(before, after) {
     }
   }
   const added = new Set();
+  const removed = [];
   let i = 0, j = 0;
-  while (j < m) {
-    if (i < n && A[i] === B[j]) { i++; j++; }
-    else if (i < n && dp[i + 1][j] >= dp[i][j + 1]) { i++; }
+  while (i < n || j < m) {
+    if (i < n && j < m && A[i] === B[j]) { i++; j++; }
+    else if (i < n && (j >= m || dp[i + 1][j] >= dp[i][j + 1])) { if (A[i].trim() !== '') removed.push(A[i]); i++; }
     else { added.add(j); j++; }
   }
-  return added;
+  return { added, removed };
 }
 
 // 空の行を飛ばし、行の前後の空白は見ないで比べる。字下げのずれでは止めない。
@@ -113,7 +114,11 @@ async function showLesson(id, stepNo) {
   $('step-title').textContent = `第${L.number}回 ${L.title}　${idx + 1}. ${step.title}`;
   $('step-body').innerHTML = step.body;
 
-  const added = addedLines(before, step.code);
+  const { added, removed } = diffLines(before, step.code);
+  $('removed').hidden = removed.length === 0;
+  $('removed').innerHTML = removed.length === 0 ? '' :
+    `<h3>この歩で消す行</h3><p>次の行は、前の歩にはあって、この歩の見本には無い行です。打つ欄から消してください。</p><pre class="code">${
+      removed.map((l) => esc(l.trim())).join('\n')}</pre>`;
   $('sample').innerHTML = step.code.split('\n').map((line, i) =>
     `<span class="ln${added.has(i) ? ' added' : ''}"><span class="no">${i + 1}</span>${esc(line)}</span>`
   ).join('');

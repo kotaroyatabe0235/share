@@ -110,6 +110,8 @@ a { color: var(--accent); }
 }
 .box.care { border-left-color: var(--bad); }
 .box.try { border-left-color: var(--ok); }
+.box.removed { border-left-color: var(--muted); }
+.box.removed .code { padding: 8px 12px; white-space: pre; }
 .box h3 { margin: 0 0 4px; font-size: 0.95rem; }
 .box p { margin: 4px 0; }
 
