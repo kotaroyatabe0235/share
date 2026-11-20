@@ -3,26 +3,67 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Three.js ゲームの練習</title>
-<style>
-  :root { --bg: #ffffff; --fg: #1a1a1a; --muted: #666666; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #16181c; --fg: #e8e8e8; --muted: #9a9a9a; }
-  }
-  body { margin: 0; background: var(--bg); color: var(--fg);
-         font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif; line-height: 1.7; }
-  main { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
-  .muted { color: var(--muted); }
-</style>
+<title>写経で学ぶ Three.js</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-  <h1>Three.js ゲームの練習</h1>
-  <p>Web の基礎から始めて、ブラウザで動く小さな3Dゲームを作ります。1回に1つの仕組みだけ足していきます。</p>
-  <h2>作るもの</h2>
-  <p>夜の中庭を懐中電灯の明かりだけで歩き、落とし物を集めるゲーム。</p>
-  <h2>回の一覧</h2>
-  <p class="muted">まだありません。</p>
+<header class="top">
+  <a class="brand" href="#/">写経で学ぶ Three.js</a>
+</header>
+
+<main id="list-view" hidden>
+  <p class="lead">見本のコードを、自分の手で打ちながら学びます。Web の基礎から始めて、Three.js での3Dゲームづくりまで進む予定です。打った行が見本と合っているかは、その場でわかります。実行ボタンで、打ったコードの結果が見られます。</p>
+  <ol id="lesson-list" class="lesson-list"></ol>
+  <p class="muted small">進み具合は、このブラウザの中にだけ保存されます。別の端末やブラウザには引き継がれません。保存が使えない設定のブラウザでは、保存されません。</p>
 </main>
+
+<main id="lesson-view" class="lesson" hidden>
+  <section class="pane guide">
+    <nav class="steps" id="step-nav" aria-label="歩の一覧"></nav>
+    <h1 id="step-title"></h1>
+    <div id="step-body" class="body"></div>
+    <h2 class="label">見本 <span class="muted small">色のついた行が、この歩で増えた行</span></h2>
+    <pre id="sample" class="code sample"></pre>
+    <div id="step-care" class="box care"></div>
+    <div id="step-try" class="box try"></div>
+  </section>
+
+  <section class="pane work">
+    <div class="toolbar">
+      <button id="run" type="button" class="primary">実行</button>
+      <button id="reset" type="button">打ち直す</button>
+      <span class="spacer"></span>
+      <button id="prev" type="button">前の歩</button>
+      <button id="next" type="button">次の歩</button>
+    </div>
+    <p id="status" class="status" role="status"></p>
+    <div class="keybar" id="keybar" aria-label="記号を入れるボタン">
+      <button type="button" data-ins="<">&lt;</button>
+      <button type="button" data-ins=">">&gt;</button>
+      <button type="button" data-ins="/">/</button>
+      <button type="button" data-ins="=">=</button>
+      <button type="button" data-ins='"'>"</button>
+      <button type="button" data-ins="{">{</button>
+      <button type="button" data-ins="}">}</button>
+      <button type="button" data-ins=";">;</button>
+      <button type="button" data-ins=":">:</button>
+      <button type="button" data-ins="(">(</button>
+      <button type="button" data-ins=")">)</button>
+      <button type="button" data-ins="'">'</button>
+      <button type="button" data-ins="!">!</button>
+      <button type="button" data-ins="  ">字下げ</button>
+    </div>
+    <div class="editor">
+      <pre id="gutter" class="gutter" aria-hidden="true"></pre>
+      <textarea id="code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="コードを打つ欄"></textarea>
+    </div>
+    <h2 class="label">実行結果</h2>
+    <iframe id="result" class="result" sandbox="allow-scripts" title="実行結果"></iframe>
+    <details class="sources" id="sources"></details>
+  </section>
+</main>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>
