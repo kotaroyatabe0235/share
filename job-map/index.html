@@ -10,7 +10,7 @@
 <style>
 /* Layout: a pannable atlas. Sectors are regions, industries are territories, flow stages run left to right inside each territory, occupations are the settlements. */
 :root{
-  --ground:#e9edf0; --grid:#d6dde3; --card:#fbfcfd; --ink:#18232d; --muted:#4d5c68; --line:#c3ccd4; --accent:#1d5f8a; --hit:#e0a100;
+  --ground:#e9edf0; --grid:#d6dde3; --card:#fbfcfd; --ink:#18232d; --muted:#4d5c68; --line:#c3ccd4; --accent:#1d5f8a; --hit:#9a6700;
   --panel:#ffffff; --shadow:0 1px 2px rgba(24,35,45,.08),0 6px 24px rgba(24,35,45,.08);
   --s1:#3b6b2a; --s2:#84481f; --s3:#265d96; --s4:#983163; --s5:#7d5200; --s6:#4c4796; --s7:#166a64; --s8:#425467; --s9:#a13b28;
   --km:#9a5600; --ko:#24702a; --kh:#b02d68; --ki:#1f5ea6;
@@ -229,34 +229,34 @@ body.detail-open .hint{display:none}
   <button id="zout" aria-label="縮小">－</button>
   <button id="zfit" aria-label="全体を表示" title="全体を表示" style="font-size:13px">全体</button>
 </div>
-<div class="hint">ドラッグで移動、ホイールやピンチで拡大縮小。職業を選ぶと、関わる段階が全部光ります。段階の見出しを選ぶと、ほかの業種とのつながりと、法律と、仕訳が出ます。</div>
+<div class="hint">ドラッグで移動、ホイールやピンチで拡大縮小。職業を選ぶと、その職業がほかの段階に出ているところも光ります。段階の見出しを選ぶと、ほかの業種とのつながりと、法律と、仕訳が出ます。</div>
 <div class="legend" id="legend" hidden><b>つながりの線（矢印の向きに渡る）</b><span><i class="sw km"></i>もの</span><span><i class="sw ko"></i>お金</span><span><i class="sw kh"></i>人</span><span><i class="sw ki"></i>情報</span></div>
 
 <aside class="panel" id="index" hidden>
   <button class="close" data-close="index" aria-label="閉じる">×</button>
-  <h2>業種の一覧</h2>
-  <p class="note">業種ごとに、実際の仕事の単位で流れを何本か置き、流れの段階を左から右へ並べています。各段階には、その段階に関わる職業を並べました。順番のない分野のまとまりは、矢印ではなく点線で区切っています。1つの職業は、関わる段階のすべてに出てきます。職業を選ぶと、ほかの段階に出ているところも光ります。点線の枠の職業は、ふだんは別の業種で働く人です。段階の見出しを選ぶと、その段階がほかの業種のどの段階とつながっているか（もの・お金・人・情報のどれが渡るか）と、かかわる法律と、仕訳の例が出ます。見出しの「つながり」「法律」「仕訳」の印は、その数です。「仕訳」の数には、お金のつながりで、その段階の側がつける仕訳も入ります。上の「業種のつながり」を押すと、つながりの線を地図全体に引きます。流れは一般的な例をまとめたもので、会社や地域によって順番や担い手は変わります。業種の分け方も、公的な職業分類とは異なる独自のものです。</p>
+  <h2 tabindex="-1">業種の一覧</h2>
+  <p class="note">業種ごとに、実際の仕事の単位で流れを何本か置き、流れの段階を左から右へ並べています。各段階には、その段階に関わる職業を並べました。順番のない分野のまとまりは、矢印ではなく点線で区切っています。1つの職業は、関わる段階のすべてに出てきます。職業を選ぶと、ほかの段階に出ているところも光ります。点線の枠の職業は、ふだんは別の業種で働く人です。段階の見出しを選ぶと、その段階がほかの業種のどの段階とつながっているか（もの・お金・人・情報のどれが渡るか）と、かかわる法律と、仕訳の例が出ます。見出しの「つながり」「法律」「仕訳」の印は、その数です。「仕訳」の数には、お金のつながりで、その段階の側がつける仕訳も入ります。上の「つながり」のボタンを押すと、つながりの線を地図全体に引きます。流れは一般的な例をまとめたもので、会社や地域によって順番や担い手は変わります。業種の分け方も、公的な職業分類とは異なる独自のものです。一覧の業種の横の数は、その業種の地図に出てくる職業の数です。点線の枠の人も数えています。</p>
   <details class="fold"><summary>出典と、確かめた日</summary>
-  <p class="note">職業の資格や手続き、法律、勘定科目の記述は、e-Gov法令検索（laws.e-gov.go.jp）の現行の条文を主な出典にし、そのほかは資格や制度を所管する省庁などの公式の情報で確かめました。確かめたのは2026年11月です。法律の一覧と、法令に名前のある勘定科目には、条文へのリンクがあります。仕事の流れ・職業の並べ方・仕訳は、一般的な例としてまとめたもので、特定の出典の写しではありません。</p>
+  <p class="note">職業の資格や手続き、法律、勘定科目の記述は、e-Gov法令検索（laws.e-gov.go.jp）の現行の条文を主な出典にし、そのほかは資格や制度を所管する省庁などの公式の情報で確かめました。確かめたのは2026年11月です。法律の一覧と、科目の名前の根拠にした法令がある勘定科目には、条文へのリンクがあります。仕事の流れ・職業の並べ方・仕訳は、一般的な例としてまとめたもので、特定の出典の写しではありません。</p>
   </details>
   <div id="indexList"></div>
 </aside>
 
 <aside class="panel" id="laws" hidden>
   <button class="close" data-close="laws" aria-label="閉じる">×</button>
-  <h2>法律の一覧</h2>
-  <p class="note">仕事の流れにかかわる、日本の主な法律です。法律を選ぶと、その法律がかかわる段階と職業が地図の上で光り、何を決めているかが出ます。法律と段階の結びつきは、主なものを選んで載せたもので、すべてではありません。かっこの中の条は、e-Gov法令検索の現行の条文で確かめました（2026年11月）。説明は、条文をやさしく言い換えたものです。正確な中身は、条文を読んでください。</p>
+  <h2 tabindex="-1">法律の一覧</h2>
+  <p class="note">仕事の流れにかかわる、日本の憲法と主な法律です。法律を選ぶと、その法律がかかわる段階と職業が地図の上で光り、何を決めているかが出ます。法律と段階の結びつきは、主なものを選んで載せたもので、すべてではありません。かっこの中の条は、e-Gov法令検索の現行の条文で確かめました（2026年11月）。説明は、条文をやさしく言い換えたものです。正確な中身は、条文を読んでください。一覧の法律の横の数は、かかわる段階と職業の数を合わせたものです。</p>
   <div id="lawList"></div>
 </aside>
 
 <aside class="panel" id="acct" hidden>
   <button class="close" data-close="acct" aria-label="閉じる">×</button>
-  <h2>会計の一覧</h2>
-  <p class="note">お金や物が動いた段階に、帳簿に書く仕訳の例を載せました。科目を選ぶと、その科目が出てくる段階が地図の上で光ります。仕訳は一般的な例で、金額と消費税は省いています。</p>
+  <h2 tabindex="-1">会計の一覧</h2>
+  <p class="note">お金や物が動いた段階に、帳簿に書く仕訳の例を載せました。科目を選ぶと、その科目が出てくる段階が地図の上で光ります。仕訳は一般的な例で、金額と消費税は省いています。一覧の科目の横の数は、その科目が出てくる仕訳の数です。</p>
   <details class="fold"><summary>仕訳の読み方と、載せ方</summary>
   <p class="note">仕訳は、1つの取引を左と右に分けて書くものです。左を借方、右を貸方と呼びます。資産が増えたら左、負債や純資産が増えたら右に書きます。費用は左、収益は右です。減ったときは、反対の側に書きます。たとえば、売掛金という資産が、代金を受け取って減ったときは、右に書きます。左と右の金額は、必ず同じになります。</p>
-  <p class="note">段階の仕訳には、その段階で起きる代表的な取引を載せました。お金のつながりの多くには、払う側と受け取る側の両方の仕訳を載せています。片方だけのものもあります。</p>
-  <p class="note">会社の科目の名前は、上場会社などが出す財務諸表の決まり（財務諸表等規則）に合わせました。銀行・保険・電気・社会福祉法人・学校法人・病院・水道は、それぞれの会計の決まりに載っている名前です。法令に名前がなく、帳簿でよく使う名前のものは、そう書いています。法令の条は、e-Gov法令検索の現行の条文で確かめました（2026年11月）。</p>
+  <p class="note">段階の仕訳には、その段階で起きる代表的な取引を載せました。お金のつながりの多くには、お金を出す側と受け取る側の両方の仕訳を載せています。片方だけのものもあります。貸し付けや送金も、お金が出ていく側を、出す側としています。</p>
+  <p class="note">会社の科目の名前は、上場会社などが出す財務諸表の決まり（財務諸表等規則）に合わせました。ただし、建設・銀行・保険・鉄道・電気通信・電気などの業種は、その業種の決まりがあれば、上場していてもそちらの科目を使います（財務諸表等規則2条）。銀行・保険・電気・社会福祉法人・学校法人・医療法人・地方公営企業は、それぞれの会計の決まりに載っている名前です。建設・鉄道・通信の会社の仕訳は、会社の一般の名前で書き、そのことを仕訳に書き添えています。財務諸表等規則の条文と損益計算書の様式に名前がなく、帳簿でよく使う名前のものは、そう書いています。法令の条は、e-Gov法令検索の現行の条文で確かめました（2026年11月）。</p>
   <p class="note">国と自治体の会計は、会社のような仕訳ではなく、1年度の収入と支出を、歳入と歳出として記録します。国では、収入と支出は、現金を受け取ることと払うことです（財政法2条）。自治体の歳入と歳出がどの年度に入るかは、地方自治法施行令の決まりによります。実際の処理は、会社や取引によって変わります。</p>
   </details>
   <div id="acctList"></div>
@@ -331,7 +331,7 @@ function build(){
     SECT.push({el:sw,tag:tg,x:0,y:0});
   });
   const nf=D.reduce((a,i)=>a+i.flows.length,0);
-  document.getElementById('stat').textContent=`${D.length}業種・${nf}本の流れ・${JM.length}職業・${LINKS.length}本のつながり・${LAWS.length}の法律・${ACCTS.length}の勘定科目`;
+  document.getElementById('stat').textContent=`${D.length}業種・${nf}本の流れ・${JM.length}職業・${LINKS.length}本のつながり・${LAWS.length}の憲法・法律・${ACCTS.filter(a=>a.c!=='国と自治体').length}の勘定科目`;
   // index: industries, and their flows
   const il=document.getElementById('indexList');
   sectors.forEach(sec=>{
@@ -498,7 +498,7 @@ function visibleArea(){
   const left=!narrow&&(!$('index').hidden||!$('laws').hidden||!$('acct').hidden)?332:0;
   const right=!narrow&&!document.getElementById('detail').hidden?372:0;
   const sheet=narrow&&!document.getElementById('detail').hidden?innerHeight*0.55:0;
-  return {x0:left,y0:top,W:innerWidth-left-right,H:innerHeight-top-sheet};
+  return {x0:left,y0:top,W:Math.max(200,innerWidth-left-right),H:innerHeight-top-sheet};
 }
 // mode 'region': show the element whole if possible, else its top-left at a readable zoom
 // mode 'point': show the element at a readable zoom (never in the far level)
@@ -592,7 +592,8 @@ world.addEventListener('focusin',e=>{
 const LEFT={index:'btnIndex',laws:'btnLaws',acct:'btnAcct'};
 function togglePanel(id,on){const p=$(id);p.hidden=!on;
   if(id==='detail')document.body.classList.toggle('detail-open',on);
-  if(LEFT[id]){$(LEFT[id]).setAttribute('aria-expanded',String(on));if(on)Object.keys(LEFT).forEach(o=>{if(o!==id)togglePanel(o,false)})} // one left panel at a time
+  if(LEFT[id]){$(LEFT[id]).setAttribute('aria-expanded',String(on));if(on)Object.keys(LEFT).forEach(o=>{if(o!==id)togglePanel(o,false)}); // one left panel at a time
+    if(on&&kbd){const h=p.querySelector('h2');if(h)h.focus({preventScroll:true})}} // keyboard users land in the list
   // closing a panel that holds focus: hand focus back to what opened it
   if(!on&&p.contains(document.activeElement)){
     const back=id==='detail'?(curEl||(curStep&&curStep.el)||(curLaw&&$('btnLaws'))||(curAcct&&$('btnAcct'))):$(LEFT[id]);
@@ -621,8 +622,8 @@ function openDetail(colorVar,crumb,title){
   const body=$('dBody');body.textContent='';return body;
 }
 function showDetail(){
-  // on a phone every left panel closes; on a tablet only the list that the shown item came from stays open
-  if(innerWidth<=1000)Object.keys(LEFT).forEach(id=>{if(innerWidth<=640||!((id==='laws'&&curLaw)||(id==='acct'&&curAcct)))togglePanel(id,false)})
+  // up to 1000px wide, a left list and the detail panel together would cover the map, so the list closes
+  if(innerWidth<=1000)Object.keys(LEFT).forEach(id=>togglePanel(id,false))
   togglePanel('detail',true);$('detail').scrollTop=0;
   if(kbd)$('dName').focus({preventScroll:true}); // keyboard users land in the panel
 }
@@ -700,7 +701,7 @@ function openStep(st,fly){
     list.forEach(x=>{const li=row(`${x.other.ind.name}　${x.other.name}`,`${x.l.k}：${x.l.d}`,null,false,()=>openStep(x.other,true),KIND[x.l.k]);
       // money links: this side's entry first, then the other side's
       // the other party's entry sits under the link; this step's own side is listed in the 仕訳 section below
-      x.l.ents.filter(je=>je.sd!==sideOf(x)).forEach(je=>li.appendChild(jeBox(je,null,`相手の側の仕訳（${je.sd==='a'?'払う側':'受け取る側'}）`)));
+      x.l.ents.filter(je=>je.sd!==sideOf(x)).forEach(je=>li.appendChild(jeBox(je,null,`相手の側の仕訳（${je.sd==='a'?'お金を出す側':'受け取る側'}）`)));
       ul.appendChild(li)});body.appendChild(ul)};
   if(out.length)linkRows(`渡す先（${out.length}）`,out);
   if(inn.length)linkRows(`受け取る元（${inn.length}）`,inn);
@@ -708,7 +709,7 @@ function openStep(st,fly){
   const nj=jeCount(st),notes=st.ents.filter(e=>e.m==='none');
   if(nj){body.appendChild(lbl(`この段階の仕訳（${nj}）`,true));
     st.ents.filter(e=>e.m!=='none').forEach(je=>body.appendChild(jeBox(je)));
-    st.links.forEach(x=>x.l.ents.filter(je=>je.sd===sideOf(x)).forEach(je=>body.appendChild(jeBox(je,null,`お金のつながり：${x.other.ind.name}「${x.other.name}」${x.dir==='out'?'へ払う':'から受け取る'}`))))}
+    st.links.forEach(x=>x.l.ents.filter(je=>je.sd===sideOf(x)).forEach(je=>body.appendChild(jeBox(je,null,`お金のつながり：${x.other.ind.name}「${x.other.name}」${x.dir==='out'?'へお金を出す':'から受け取る'}`))))}
   if(notes.length){body.appendChild(lbl('仕訳について',true));notes.forEach(je=>body.appendChild(el('p','muted',`${je.who}：${je.what}${je.note?'。'+je.note:''}`)))}
   if(!st.links.length&&!st.laws.length&&!st.ents.length)body.appendChild(el('p','muted','この段階には、ほかの業種とのつながりと、法律と、仕訳を載せていません。'));
   else if(st.links.length)body.appendChild(el('p','muted','地図には、この段階のつながりを線で引いています。線の色は、渡るもの（もの・お金・人・情報）を表します。'));
@@ -745,7 +746,7 @@ function openAcct(a){
   body.appendChild(el('p','sum',a.p));
   const s=a.s!=null?SRC[a.s]:null,sp=el('p','src');
   if(s){sp.append(`科目の名前の根拠：${s.n}　${a.a}　`);const x=el('a','ext','条文を読む（e-Gov法令検索）');x.href='https://laws.e-gov.go.jp/law/'+s.id;x.target='_blank';x.rel='noopener';sp.appendChild(x);if(s.d)sp.appendChild(el('small',null,s.d))}
-  else sp.append('帳簿でよく使う名前で、法令で決まった名前ではありません。');
+  else sp.append('上場会社などの科目を決める財務諸表等規則の、条文と損益計算書の様式には出てこない、帳簿でよく使う名前です。ほかの業種の決まりに出てくるものもあります。');
   body.appendChild(sp);
   body.appendChild(lbl(`この科目が出てくる仕訳（${a.uses.length}）`));const ul=el('ul','where');
   a.uses.forEach(u=>{const je=u.je;
@@ -771,9 +772,11 @@ q.addEventListener('input',()=>{
   const t=norm(q.value.trim());
   INST.forEach(r=>r.el.classList.remove('hit'));
   if(!t){world.classList.remove('searching');res.hidden=true;hits=[];return}
-  // laws: the name first, then the purpose
-  const aw=ACCTS.filter(a=>(a._n||(a._n=norm(a.n))).includes(t));
-  const lw=LAWS.filter(l=>{const h=l._n||(l._n=norm(l.n));return h.includes(t)}),lp=LAWS.filter(l=>!lw.includes(l)&&(l._p||(l._p=norm(l.p))).includes(t));
+  if(curLaw||curAcct)togglePanel('detail',false); // a new search replaces a law or account highlight
+  // laws and accounts: every typed word must appear; laws by name first, then by purpose
+  const tw=t.split(/\s+/),all=h=>tw.every(w=>h.includes(w));
+  const aw=ACCTS.filter(a=>all(a._n||(a._n=norm(a.n))));
+  const lw=LAWS.filter(l=>all(l._n||(l._n=norm(l.n)))),lp=LAWS.filter(l=>!lw.includes(l)&&all(l._p||(l._p=norm(l.p))));
   // each word may also match its everyday synonyms
   const words=t.split(/\s+/).map(w=>[w,...(ALIAS_N[w]||[])]);
   // the typed word matches name, summary, industry and stage; synonyms match only name and summary
@@ -791,7 +794,8 @@ q.addEventListener('input',()=>{
   if(!hits.length&&!lw.length&&!lp.length&&!aw.length){res.appendChild(el('div','empty','見つかりませんでした。別の言葉で試してください。'))}
   // law names come right after the jobs whose names hold the typed word
   const top=hits.filter(j=>nm(j)===0).length;let lawsShown=false;
-  const showLaws=()=>{if(!lawsShown){lawsShown=true;lw.slice(0,8).forEach(lawBtn);aw.slice(0,8).forEach(acctBtn)}};
+  const more=(n,k)=>{if(n>8)res.appendChild(el('div','empty',`${k}はほか${n-8}件。言葉を足すと絞れます。`))};
+  const showLaws=()=>{if(!lawsShown){lawsShown=true;lw.slice(0,8).forEach(lawBtn);more(lw.length,'法律');aw.slice(0,8).forEach(acctBtn);more(aw.length,'科目')}};
   if(!top)showLaws();
   hits.slice(0,80).forEach((j,i)=>{if(i===top)showLaws();const b=el('button');b.type='button';b.appendChild(el('div','rn',j.n));
     const hi=D.find(x=>x.id===j.hi);b.appendChild(el('div','rp',`${hi?hi.name:''}　関わる段階${j.inst.length}か所`));
@@ -799,7 +803,7 @@ q.addEventListener('input',()=>{
     b.onclick=()=>{res.hidden=true;if(innerWidth<=640)q.blur();openJob(first,true)};res.appendChild(b)});
   showLaws();
   if(hits.length>80)res.appendChild(el('div','empty',`ほか${hits.length-80}件。地図上で光っています。`));
-  lp.slice(0,5).forEach(lawBtn);
+  lp.slice(0,5).forEach(lawBtn);if(lp.length>5)res.appendChild(el('div','empty',`目的に言葉が入っている法律は、ほか${lp.length-5}件。`));
   res.hidden=false;
 });
 q.addEventListener('keydown',e=>{
