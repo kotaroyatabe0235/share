@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DVA-C03 学習の地図</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDPMincho:wght@700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: 全画面の地図。分野を4つの領地、章を列、節をカードにして並べる。右（狭い画面は下）に読む枠 */
+:root{
+  --bg:#eef0ea; --land:#f8f9f5; --card:#ffffff; --ink:#1d2330; --muted:#5a6373; --line:#d6dad2;
+  --accent:#1d5c86; --accent-soft:#e2ecf4; --shadow:0 1px 3px rgba(29,35,48,.12);
+  --d0:#6b7280; --d1:#1d5c86; --d2:#8a3b5c; --d3:#2f6b46; --d4:#8a5a12; --d9:#6b7280;
+  --pre:#1d5c86; --pair:#2f6b46; --cmp:#b0491f; --read:#2f6b46;
+  --tip:#276b45; --tip-bg:#e8f3ec; --trap:#9a4419; --trap-bg:#f8ece4; --code-bg:#eef0ec;
+  --f-display:"BIZ UDPMincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+  --bar-h:52px;
+  --f-mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1318; --land:#161b22; --card:#1c222b; --ink:#e4e7ec; --muted:#9aa3b2; --line:#2c3442;
+  --accent:#7fb6dd; --accent-soft:#1c2a38; --shadow:0 1px 3px rgba(0,0,0,.5);
+  --d0:#9aa3b2; --d1:#7fb6dd; --d2:#e094b4; --d3:#7fc79b; --d4:#e3b261; --d9:#9aa3b2;
+  --pre:#7fb6dd; --pair:#7fc79b; --cmp:#f0a07a; --read:#7fc79b;
+  --tip:#7fc79b; --tip-bg:#17271f; --trap:#e6a07a; --trap-bg:#2b1d16; --code-bg:#1f2530; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1318; --land:#161b22; --card:#1c222b; --ink:#e4e7ec; --muted:#9aa3b2; --line:#2c3442;
+  --accent:#7fb6dd; --accent-soft:#1c2a38; --shadow:0 1px 3px rgba(0,0,0,.5);
+  --d0:#9aa3b2; --d1:#7fb6dd; --d2:#e094b4; --d3:#7fc79b; --d4:#e3b261; --d9:#9aa3b2;
+  --pre:#7fb6dd; --pair:#7fc79b; --cmp:#f0a07a; --read:#7fc79b;
+  --tip:#7fc79b; --tip-bg:#17271f; --trap:#e6a07a; --trap-bg:#2b1d16; --code-bg:#1f2530; color-scheme:dark}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--land)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar{position:fixed;z-index:9;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));background:var(--land);border-bottom:1px solid var(--line)}
+.brand{font-family:var(--f-display);font-size:17px;white-space:nowrap}
+.brand small{font-family:var(--f-mono);font-size:11px;color:var(--accent);margin-left:6px;letter-spacing:.08em}
+.bar .sp{flex:1}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;white-space:nowrap}
+.iconbtn[aria-pressed="true"],.iconbtn[aria-expanded="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.search{position:relative}
+.search input{width:min(15rem,42vw);border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;color:var(--ink)}
+.results{position:fixed;box-sizing:border-box;max-height:60vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
+.results button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px}
+.results button:hover,.results button:focus-visible{background:var(--accent-soft)}
+.results .rc{display:block;font-size:11px;color:var(--muted)}
+#vp{position:fixed;inset:0;touch-action:none;cursor:grab}
+#vp.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+.terr{position:absolute;border-radius:14px;background:var(--land);border:1px solid var(--line)}
+.terr .th{position:absolute;left:22px;top:14px;right:22px}
+.terr .th .eb{font-size:12px;letter-spacing:.08em;color:var(--muted)}
+.terr .th .tt{font-family:var(--f-display);font-size:24px;line-height:1.3}
+.terr .th .wt{font-family:var(--f-mono);font-size:13px;margin-left:8px}
+.terr .bigname{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;font-family:var(--f-display);font-size:96px;line-height:1.2;padding:40px}
+.chhead{position:absolute;border:0;background:none;text-align:left;cursor:pointer;padding:6px 8px;border-radius:8px}
+.chhead:hover{background:var(--accent-soft)}
+.chhead .no{display:block;font-size:11px;color:var(--muted);letter-spacing:.06em}
+.chhead .ct{display:block;font-weight:700;font-size:15px;line-height:1.35}
+.card{position:absolute;box-sizing:border-box;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 10px;text-align:left;cursor:pointer;box-shadow:var(--shadow);overflow:hidden}
+.card:hover{border-color:var(--accent)}
+.card.sel{outline:2px solid var(--accent);outline-offset:1px}
+.card.dim{opacity:.35}
+.card .ttl{display:block;font-weight:700;font-size:13.5px;line-height:1.35;max-height:2.7em;overflow:hidden}
+.card .sk{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.chip{font-family:var(--f-mono);font-size:10.5px;color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:0 4px}
+.card .sm{display:block;font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:3px;max-height:2.9em;overflow:hidden}
+.card .lk{font-family:var(--f-mono);font-size:10px;color:var(--muted);white-space:nowrap}
+.card.quiz{background:var(--accent-soft);border-style:dashed}
+.card .rd{display:none;font-size:10.5px;font-weight:700;color:var(--read);white-space:nowrap}
+.card.read{border-color:var(--read);box-shadow:inset 4px 0 0 var(--read),var(--shadow)}
+.card.read .rd{display:inline}
+.prog{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.prog b{color:var(--read)}
+.readbox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 4px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:13px}
+.readbox .st{flex:1;min-width:10rem;color:var(--muted)}
+.readbox .st b{color:var(--read)}
+.readbox .em{color:var(--trap);font-weight:700}
+.readbtn{border:1px solid var(--read);background:var(--read);color:var(--card);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;font-size:13px}
+.undobtn{border:1px solid var(--line);background:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--muted)}
+.readbtn:disabled,.undobtn:disabled{opacity:.5;cursor:default}
+#index .si.read::before{content:"✓ ";color:var(--read)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.store{font-size:11px;color:var(--muted);margin-top:4px}
+#world.mid .card .sm{display:none}
+#world.far .card,#world.far .chhead,#world.far .th{visibility:hidden}
+#world.far .terr .bigname{display:flex}
+svg#links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+svg#links path{fill:none;stroke-width:2;opacity:.55}
+svg#links path.hi{stroke-width:3.5;opacity:1}
+svg#links path.lo{opacity:.12}
+.zoom{position:fixed;z-index:4;right:max(16px,calc(env(safe-area-inset-right,0px) + 12px));bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:6px}
+.zoom button{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);cursor:pointer;font-size:18px}
+.legend{position:fixed;z-index:4;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 16px);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:var(--shadow);display:grid;gap:3px}
+.legend[hidden],.results[hidden]{display:none}
+.legend i{display:inline-block;width:22px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
+.panel{position:fixed;z-index:7;background:var(--land);border:1px solid var(--line);box-shadow:var(--shadow);overflow-y:auto;-webkit-overflow-scrolling:touch}
+#detail{top:calc(env(safe-area-inset-top,0px) + var(--bar-h));right:0;bottom:0;width:min(34rem,100vw);border-radius:12px 0 0 0;padding:16px max(18px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) 22px;box-sizing:border-box}
+#index{top:calc(env(safe-area-inset-top,0px) + var(--bar-h));left:0;bottom:0;width:min(20rem,88vw);border-radius:0 12px 0 0;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 30px) max(16px,env(safe-area-inset-left,0px));box-sizing:border-box}
+@media (max-width:640px){
+  #index{z-index:8}
+  #detail{top:auto;height:78vh;width:100vw;border-radius:14px 14px 0 0;padding-left:max(16px,env(safe-area-inset-left,0px))}
+  body.detail-open .zoom,body.detail-open .legend{display:none}
+  .brand small{display:none}
+}
+.close{position:sticky;top:0;float:right;border:1px solid var(--line);background:var(--card);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:16px;z-index:1}
+.crumb{font-size:12px;color:var(--muted);margin:2px 44px 4px 0}
+.crumb button{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-size:12px;text-decoration:underline}
+#detail h2{font-family:var(--f-display);font-size:21px;line-height:1.4;margin:4px 0 8px;text-wrap:balance}
+#detail .body{line-height:1.85;font-size:15px}
+#detail .body h4{font-size:15.5px;margin:1.4rem 0 .3rem}
+#detail .body p{margin:.6rem 0}
+#detail .body ul,#detail .body ol{padding-left:1.3rem}
+#detail .body li{margin:.2rem 0}
+.box{margin:1rem 0;padding:.7rem .9rem;border-radius:6px;border:1px solid var(--line);background:var(--card)}
+.box>.bt{font-weight:700;font-size:13px;margin:0 0 .2rem}
+.box.tip{background:var(--tip-bg);border-color:transparent}.box.tip>.bt{color:var(--tip)}
+.box.trap{background:var(--trap-bg);border-color:transparent}.box.trap>.bt{color:var(--trap)}
+.box.note>.bt{color:var(--muted)}
+.tbl{overflow-x:auto;margin:.8rem 0}
+table{border-collapse:collapse;font-size:13px;line-height:1.55;min-width:100%}
+th,td{border:1px solid var(--line);padding:.35rem .5rem;vertical-align:top;text-align:left}
+th{background:var(--accent-soft)}
+td.num,th.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);border-radius:3px;padding:.05em .3em;overflow-wrap:anywhere}
+pre{background:var(--code-bg);border-radius:6px;padding:.7rem .9rem;overflow-x:auto;font-size:12.5px;line-height:1.5}
+pre code{background:none;padding:0;overflow-wrap:normal}
+.skill{font-family:var(--f-mono);font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:0 .35rem}
+.quiz{margin:1rem 0;padding:.8rem .9rem;background:var(--card);border:1px solid var(--line);border-radius:6px}
+.quiz .qn{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin:0}
+.quiz ol.choices{list-style:upper-alpha}
+.quiz summary{cursor:pointer;color:var(--accent);font-weight:700}
+.sources{font-size:12.5px;color:var(--muted)}
+.sources a{overflow-wrap:anywhere}
+.sec-h{font-size:13px;letter-spacing:.06em;color:var(--muted);margin:1.6rem 0 .4rem;border-top:1px solid var(--line);padding-top:.9rem}
+.conn{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.conn button{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 10px;cursor:pointer}
+.conn button:hover{border-color:var(--accent)}
+.conn .tg{font-size:11px;font-weight:700;margin-right:6px}
+.conn .to{font-weight:700;font-size:13.5px}
+.conn .wy{display:block;font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:2px}
+.conn .wc{display:block;font-size:11px;color:var(--muted)}
+.navs{display:flex;gap:8px;margin-top:1.4rem}
+.navs button{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px;cursor:pointer;font-size:13px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.navs button:last-child{text-align:right}
+.navs button:disabled{opacity:.4;cursor:default}
+#index h3{font-size:13px;letter-spacing:.06em;color:var(--muted);margin:1rem 0 .3rem}
+#index ul{list-style:none;padding:0;margin:0}
+#index button{display:block;width:100%;text-align:left;border:0;background:none;padding:4px 6px;border-radius:6px;cursor:pointer;font-size:13.5px}
+#index button:hover{background:var(--accent-soft)}
+#index .ci{font-weight:700}
+#index .si{padding-left:18px;color:var(--muted);font-size:12.5px}
+.hint{position:fixed;z-index:3;pointer-events:none;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + var(--bar-h) + 10px);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted);box-shadow:var(--shadow);white-space:nowrap}
+.loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="brand">DVA-C03 学習の地図<small>AWS DEVELOPER ASSOCIATE</small></div>
+  <span class="sp"></span>
+  <span class="prog" id="prog" hidden></span>
+  <button class="iconbtn" id="btnIndex" aria-expanded="false" aria-controls="index">目次</button>
+  <button class="iconbtn" id="btnLinks" aria-pressed="false">つながり</button>
+  <div class="search"><input id="q" type="search" placeholder="言葉で探す" aria-label="言葉で探す" autocomplete="off"><div class="results" id="res" hidden></div></div>
+</div>
+<div id="vp"><div id="world"><svg id="links"></svg></div></div>
+<div id="live" class="sr" aria-live="polite"></div>
+<div class="loading" id="loading">読み込んでいます</div>
+<div class="hint" id="hint">カードを押すと中身が開く。ドラッグか二本指で移動、ホイールかピンチで拡大</div>
+<div class="legend" id="legend" hidden>
+  <div><i style="border-color:var(--pre)"></i>先に知っておくと分かる</div>
+  <div><i style="border-color:var(--pair)"></i>組み合わせて使う</div>
+  <div><i style="border-color:var(--cmp);border-top-style:dashed"></i>取り違えやすい・比べる</div>
+</div>
+<div class="zoom">
+  <button id="zin" aria-label="拡大">＋</button>
+  <button id="zout" aria-label="縮小">－</button>
+  <button id="zfit" aria-label="全体を表示" style="font-size:13px">全体</button>
+</div>
+<nav class="panel" id="index" hidden aria-label="目次"><button class="close" data-close="index" aria-label="閉じる">×</button><div id="indexBody"></div></nav>
+<article class="panel" id="detail" hidden><button class="close" data-close="detail" aria-label="閉じる">×</button><div id="detailBody"></div></article>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const TYPES={pre:{name:'先に知っておくと分かる',c:'var(--pre)'},pair:{name:'組み合わせて使う',c:'var(--pair)'},cmp:{name:'取り違えやすい・比べる',c:'var(--cmp)',dash:'7 5'}};
+const DCOL={part0:'var(--d0)',part1:'var(--d1)',part2:'var(--d2)',part3:'var(--d3)',part4:'var(--d4)',part9:'var(--d9)'};
+const CW=250,CH=84,CG=10,CHH=64,PAD=24,TH=78,COLG=22;
+let D,cardById={},chById={},domById={},linksOf={},view={x:0,y:0,z:1},sel=null,linksOn=false,txt={};
+const vp=$('vp'),world=$('world'),svg=$('links');
+
+fetch('data.json').then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(init).catch(e=>{$('loading').textContent='データを読めなかった（'+e.message+'）。ページを開き直してみて'});
+
+function init(data){
+  D=data;$('loading').remove();
+  D.domains.forEach(d=>domById[d.id]=d);
+  D.chapters.forEach(c=>{chById[c.id]=c;c.cards=[]});
+  D.cards.forEach(c=>{cardById[c.id]=c;chById[c.ch].cards.push(c);linksOf[c.id]=[]});
+  D.links.forEach((l,i)=>{l.i=i;linksOf[l.a].push(l);linksOf[l.b].push(l)});
+  layout();buildIndex();drawLinks();fit(false);initReads();
+  window.addEventListener('hashchange',route);route();
+  setTimeout(()=>{const h=$('hint');if(h)h.remove()},6000);
+}
+
+// ---- 配置：上に「はじめに」、2×2 に分野、下に「付録」
+function layout(){
+  const terr={};
+  D.domains.forEach(d=>{
+    const chs=D.chapters.filter(c=>c.domain===d.id);
+    const h=Math.max(...chs.map(c=>c.cards.length))*(CH+CG)+CHH;
+    terr[d.id]={w:chs.length*CW+(chs.length-1)*COLG+PAD*2,h:TH+h+PAD,chs};
+  });
+  const G=60,big=['part1','part2','part3','part4'];
+  const colW=[Math.max(terr.part1.w,terr.part3.w),Math.max(terr.part2.w,terr.part4.w)];
+  const rowH=[Math.max(terr.part1.h,terr.part2.h),Math.max(terr.part3.h,terr.part4.h)];
+  let y=0;
+  const place=(id,x,yy,w,h)=>{const t=terr[id];t.x=x;t.y=yy;t.w=w||t.w;t.h=h||t.h};
+  place('part0',0,0,colW[0]+G+colW[1]);y=terr.part0.h+G;
+  place('part1',0,y,colW[0],rowH[0]);place('part2',colW[0]+G,y,colW[1],rowH[0]);y+=rowH[0]+G;
+  place('part3',0,y,colW[0],rowH[1]);place('part4',colW[0]+G,y,colW[1],rowH[1]);y+=rowH[1]+G;
+  if(terr.part9){place('part9',0,y,colW[0]+G+colW[1]);y+=terr.part9.h}
+  world.style.width=(colW[0]+G+colW[1])+'px';world.style.height=y+'px';
+  D.size={w:colW[0]+G+colW[1],h:y};
+  D.domains.forEach(d=>{
+    const t=terr[d.id],el=document.createElement('div');el.className='terr';
+    Object.assign(el.style,{left:t.x+'px',top:t.y+'px',width:t.w+'px',height:t.h+'px',borderTop:'6px solid '+DCOL[d.id]});
+    el.innerHTML=`<div class="th"><div class="eb">${esc(d.eyebrow)}</div><div class="tt">${esc(d.title)}${d.weight?`<span class="wt" style="color:${DCOL[d.id]}">${d.weight}%</span>`:''}</div></div><div class="bigname" style="color:${DCOL[d.id]}">${esc(d.title)}${d.weight?'<br>'+d.weight+'%':''}</div>`;
+    world.insertBefore(el,svg);
+    t.chs.forEach((c,i)=>{
+      const x=t.x+PAD+i*(CW+COLG),yy=t.y+TH;
+      const hb=document.createElement('button');hb.className='chhead';
+      Object.assign(hb.style,{left:x+'px',top:yy+'px',width:CW+'px'});
+      hb.innerHTML=`<span class="no">${esc(c.no)}</span><span class="ct">${esc(c.title)}</span>`;
+      hb.onclick=e=>{e.stopPropagation();if(!moved)openChapter(c.id,true)};
+      world.insertBefore(hb,svg);
+      c.cards.forEach((k,j)=>{
+        const b=document.createElement('button');b.className='card'+(k.kind==='quiz'?' quiz':'');b.id='c-'+k.id;
+        k.x=x;k.y=yy+CHH+j*(CH+CG);
+        Object.assign(b.style,{left:k.x+'px',top:k.y+'px',width:CW+'px',height:CH+'px'});
+        const n=linksOf[k.id].length;
+        b.innerHTML=`<span class="ttl">${esc(k.title)}</span>`+
+          `<span class="sk">${k.skills.map(s=>`<span class="chip">${esc(s)}</span>`).join('')}<span style="flex:1"></span><span class="rd" id="rd-${k.id}"></span>${n?`<span class="lk">つながり ${n}</span>`:''}</span>`+
+          `<span class="sm">${k.kind==='quiz'?k.nq+'問。答えは折りたたんである':esc(k.sum)}</span>`;
+        b.onclick=e=>{e.stopPropagation();if(!moved)openCard(k.id,false)};
+        world.insertBefore(b,svg);
+      });
+    });
+  });
+  svg.setAttribute('width',D.size.w);svg.setAttribute('height',D.size.h);
+}
+
+// ---- つながりの線
+function drawLinks(){
+  svg.innerHTML='';
+  D.links.forEach(l=>{
+    const a=cardById[l.a],b=cardById[l.b];
+    const ax=a.x+CW/2,ay=a.y+CH/2,bx=b.x+CW/2,by=b.y+CH/2;
+    const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,bend=Math.min(160,len*.25);
+    const mx=(ax+bx)/2-dy/len*bend,my=(ay+by)/2+dx/len*bend;
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',`M${ax},${ay} Q${mx},${my} ${bx},${by}`);
+    p.setAttribute('stroke',TYPES[l.t].c);if(TYPES[l.t].dash)p.setAttribute('stroke-dasharray',TYPES[l.t].dash);
+    p.dataset.i=l.i;svg.appendChild(p);
+  });
+  paintLinks();
+}
+function paintLinks(){
+  const mine=sel&&linksOf[sel]?new Set(linksOf[sel].map(l=>l.i)):null;
+  svg.querySelectorAll('path').forEach(p=>{
+    const i=+p.dataset.i,on=mine&&mine.has(i);
+    p.style.display=(linksOn||on)?'':'none';
+    p.classList.toggle('hi',!!on);p.classList.toggle('lo',!!(mine&&!on&&linksOn));
+  });
+  const near=mine?new Set([sel,...linksOf[sel].map(l=>l.a===sel?l.b:l.a)]):null;
+  document.querySelectorAll('.card').forEach(c=>{const id=c.id.slice(2);c.classList.toggle('sel',id===sel);c.classList.toggle('dim',!!(near&&linksOn&&!near.has(id)))});
+  $('legend').hidden=!(linksOn||(mine&&mine.size));
+}
+$('btnLinks').onclick=()=>{linksOn=!linksOn;$('btnLinks').setAttribute('aria-pressed',linksOn);paintLinks()};
+
+// ---- 読む枠
+function crumb(chId){const c=chById[chId],d=domById[c.domain];return `<div class="crumb">${esc(d.eyebrow||d.title)} ・ <button data-ch="${c.id}">${esc(c.no)}　${esc(c.title)}</button></div>`}
+function connList(list,self){
+  if(!list.length)return '';
+  const order={pre:0,pair:1,cmp:2};
+  list=list.slice().sort((x,y)=>order[x.t]-order[y.t]);
+  return '<ul class="conn">'+list.map(l=>{
+    const other=l.a===self?l.b:l.a,o=cardById[other],dir=l.t==='pre'?(l.a===self?'この節が土台になる':'先にこちらを'):TYPES[l.t].name;
+    return `<li><button data-card="${other}"><span class="tg" style="color:${TYPES[l.t].c}">${dir}</span><span class="to">${esc(o.title)}</span><span class="wc">${esc(chById[o.ch].no)}　${esc(chById[o.ch].title)}</span><span class="wy">${esc(l.why)}</span></button></li>`}).join('')+'</ul>';
+}
+function openCard(id,fly){
+  const k=cardById[id];if(!k)return;sel=id;curCh=null;Object.keys(msgs).forEach(x=>{if(msgs[x].seen)delete msgs[x]});
+  const ch=chById[k.ch],i=ch.cards.indexOf(k),prev=ch.cards[i-1],next=ch.cards[i+1];
+  const links=linksOf[id];
+  $('detailBody').innerHTML=crumb(k.ch)+`<h2>${esc(k.title)}</h2>`+(k.skills.length?`<p>${k.skills.map(s=>`<span class="skill">スキル ${esc(s)}</span>`).join(' ')}</p>`:'')+readBox(id)+
+    `<div class="body">${k.html}</div>`+
+    (links.length?`<div class="sec-h">この節のつながり（${links.length}）</div>`+connList(links,id):'')+
+    readBox(id)+`<div class="navs"><button ${prev?`data-card="${prev.id}"`:'disabled'}>← ${prev?esc(prev.title):'章のはじめ'}</button><button ${next?`data-card="${next.id}"`:'disabled'}>${next?esc(next.title):'章のおわり'} →</button></div>`;
+  showDetail();if(msgs[id])msgs[id].seen=true;paintLinks();if(fly)flyTo(k.x,k.y,CW,CH);setHash(id);
+}
+function openChapter(chId,fly,repaint){
+  const c=chById[chId];sel=null;curCh=chId;lastChSig=chId+':'+c.cards.map(k=>reads[k.id]?reads[k.id].n:0).join(',');
+  const out={};c.cards.forEach(k=>linksOf[k.id].forEach(l=>{const o=l.a===k.id?l.b:l.a;if(cardById[o].ch!==chId)(out[cardById[o].ch]=out[cardById[o].ch]||[]).push({l,k})}));
+  const conn=Object.keys(out).sort((a,b)=>D.chapters.indexOf(chById[a])-D.chapters.indexOf(chById[b])).map(oc=>{
+    const items=out[oc];return `<li><button data-ch="${oc}"><span class="to">${esc(chById[oc].no)}　${esc(chById[oc].title)}</span><span class="wy">${items.length}本：${[...new Set(items.map(x=>x.k.title))].map(esc).join('、')}</span></button></li>`}).join('');
+  $('detailBody').innerHTML=crumb(chId)+`<h2>${esc(c.title)}</h2>`+(c.lead?`<p class="body">${esc(c.lead)}</p>`:'')+
+    `<div class="sec-h">この章の節（読んだ節 ${c.cards.filter(k=>reads[k.id]).length} / ${c.cards.length}）</div><ul class="conn">`+c.cards.map(k=>`<li><button data-card="${k.id}"><span class="to">${reads[k.id]?'✓ ':''}${esc(k.title)}</span>${reads[k.id]?`<span class="wc">${reads[k.id].n}回読んだ</span>`:''}${k.skills.length?' '+k.skills.map(s=>`<span class="chip">${esc(s)}</span>`).join(' '):''}</button></li>`).join('')+'</ul>'+
+    (conn?`<div class="sec-h">ほかの章とのつながり</div><ul class="conn">${conn}</ul>`:'')+
+    (c.sources?`<div class="sec-h">出典</div>${c.sources}`:'');
+  if(repaint){extLinks();return}
+  showDetail();paintLinks();
+  if(fly){const ks=c.cards;const x0=ks[0].x,y0=ks[0].y-CHH,y1=ks[ks.length-1].y+CH;flyTo(x0,y0,CW,y1-y0)}
+  setHash(chId);
+}
+function extLinks(){$('detail').querySelectorAll('a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener'})}
+function showDetail(){const p=$('detail');
+  if(!$('index').hidden&&(innerWidth<=640||$('index').offsetWidth+Math.min(innerWidth,544)>innerWidth-200))closeIndex();p.querySelectorAll('a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener'});p.hidden=false;p.scrollTop=0;document.body.classList.add('detail-open')}
+$('detail').addEventListener('click',e=>{
+  const rb=e.target.closest('[data-read],[data-undo]');if(rb){const id=rb.dataset.read||rb.dataset.undo,box=rb.closest('[data-rb]');
+    focusKey={id,kind:rb.dataset.read?'read':'undo',idx:[...document.querySelectorAll(`#detail [data-rb="${id}"]`)].indexOf(box)};
+    rb.dataset.read?markRead(id,1):markRead(id,-1);return}
+  const b=e.target.closest('[data-card],[data-ch],a[href^="#"]');if(!b)return;
+  if(b.matches('a')){e.preventDefault();const id=b.getAttribute('href').slice(1);if(cardById[id])openCard(id,true);else if(chById[id])openChapter(id,true);return}
+  if(b.dataset.card)openCard(b.dataset.card,true);else if(b.dataset.ch)openChapter(b.dataset.ch,true);
+});
+function closeDetail(){curCh=null;$('detail').hidden=true;document.body.classList.remove('detail-open');sel=null;paintLinks();setHash('')}
+function closeIndex(){$('index').hidden=true;$('btnIndex').setAttribute('aria-expanded','false')}
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(b.dataset.close==='detail')closeDetail();else closeIndex()});
+
+// ---- 目次と検索
+function buildIndex(){
+  let h='';
+  D.domains.forEach(d=>{h+=`<h3>${esc(d.eyebrow)}　${esc(d.title)}</h3><ul>`;
+    D.chapters.filter(c=>c.domain===d.id).forEach(c=>{h+=`<li><button class="ci" data-ch="${c.id}">${esc(c.no)}　${esc(c.title)}</button></li>`;
+      c.cards.forEach(k=>h+=`<li><button class="si" data-card="${k.id}">${esc(k.title)}</button></li>`)});h+='</ul>'});
+  $('indexBody').innerHTML=h;
+}
+$('index').addEventListener('click',e=>{const b=e.target.closest('[data-card],[data-ch]');if(!b)return;if(innerWidth<=640){$('index').hidden=true;$('btnIndex').setAttribute('aria-expanded','false')}
+  if(b.dataset.card)openCard(b.dataset.card,true);else openChapter(b.dataset.ch,true)});
+$('btnIndex').onclick=()=>{const p=$('index'),open=p.hidden;p.hidden=!open;$('btnIndex').setAttribute('aria-expanded',open);
+  if(open&&!$('detail').hidden&&(innerWidth<=640||p.offsetWidth+$('detail').offsetWidth>innerWidth-200))closeDetail()};
+const q=$('q'),res=$('res');
+q.addEventListener('input',()=>{
+  const s=q.value.trim().toLowerCase();if(!s){res.hidden=true;return}
+  const hits=[];D.cards.forEach(k=>{if(!txt[k.id])txt[k.id]=(k.title+' '+new DOMParser().parseFromString(k.html,'text/html').body.textContent).toLowerCase();
+    const i=txt[k.id].indexOf(s);if(i>=0)hits.push(k)});
+  res.innerHTML=hits.length?hits.slice(0,40).map(k=>`<button data-card="${k.id}">${esc(k.title)}<span class="rc">${esc(chById[k.ch].no)}　${esc(chById[k.ch].title)}</span></button>`).join(''):'<div style="padding:8px;font-size:13px;color:var(--muted)">見つからなかった</div>';
+  placeRes();res.hidden=false;
+});
+function placeRes(){const r=q.getBoundingClientRect(),w=Math.min(352,innerWidth-32);
+  res.style.width=w+'px';res.style.top=(r.bottom+4)+'px';res.style.left=Math.max(16,Math.min(r.right-w,innerWidth-16-w))+'px'}
+res.addEventListener('click',e=>{const b=e.target.closest('[data-card]');if(b){res.hidden=true;openCard(b.dataset.card,true)}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){res.hidden=true}});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.search'))res.hidden=true});
+
+// ---- 移動と拡大
+const MINZ=0.08,MAXZ=2.2;let moved=false,anim=null;
+function apply(){world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.z})`;world.classList.toggle('far',view.z<0.32);world.classList.toggle('mid',view.z>=0.32&&view.z<0.6)}
+function zoomAt(f,cx,cy){const z=Math.min(MAXZ,Math.max(MINZ,view.z*f));view.x=cx-(cx-view.x)*z/view.z;view.y=cy-(cy-view.y)*z/view.z;view.z=z;apply()}
+function barH(){const b=document.querySelector('.bar');return b?b.getBoundingClientRect().bottom:56}
+function syncBar(){document.documentElement.style.setProperty('--bar-h',(document.querySelector('.bar').offsetHeight)+'px')}
+function area(){const top=barH()+4,det=!$('detail').hidden,idx=!$('index').hidden,narrow=innerWidth<=640;
+  const left=idx&&!narrow?$('index').offsetWidth:0;
+  return {x:left,y:top,w:Math.max(120,innerWidth-left-(det&&!narrow?$('detail').offsetWidth:0)),h:Math.max(120,innerHeight-top-(det&&narrow?$('detail').offsetHeight:0))}}
+function fit(animate){const a=area(),z=Math.min(a.w/(D.size.w+80),a.h/(D.size.h+80));go(a.x+(a.w-D.size.w*z)/2,a.y+(a.h-D.size.h*z)/2,z,animate)}
+function flyTo(x,y,w,h){const a=area();let z=Math.min(1.1,Math.max(0.7,Math.min(a.w/(w+120),a.h/(h+120))));go(a.x+a.w/2-(x+w/2)*z,a.y+a.h/2-(y+h/2)*z,z,true)}
+function go(x,y,z,animate){cancelAnimationFrame(anim);
+  if(!animate||matchMedia('(prefers-reduced-motion: reduce)').matches){view={x,y,z};apply();return}
+  const s={...view},t0=performance.now(),T=420;
+  const step=t=>{let k=Math.min(1,(t-t0)/T);k=1-Math.pow(1-k,3);view={x:s.x+(x-s.x)*k,y:s.y+(y-s.y)*k,z:s.z+(z-s.z)*k};apply();if(k<1)anim=requestAnimationFrame(step)};anim=requestAnimationFrame(step)}
+const ptrs=new Map();let last=null,pinch=null;
+vp.addEventListener('pointerdown',e=>{if(e.button!==0)return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;cancelAnimationFrame(anim);
+  if(ptrs.size===1)last={x:e.clientX,y:e.clientY};if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),cx:(a.x+b.x)/2,cy:(a.y+b.y)/2}}});
+vp.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),cx=(a.x+b.x)/2,cy=(a.y+b.y)/2;view.x+=cx-pinch.cx;view.y+=cy-pinch.cy;zoomAt(d/pinch.d,cx,cy);pinch={d,cx,cy};moved=true;return}
+  if(last){const dx=e.clientX-last.x,dy=e.clientY-last.y;if(Math.abs(dx)+Math.abs(dy)>4||moved){if(!moved){moved=true;vp.classList.add('drag');try{vp.setPointerCapture(e.pointerId)}catch(_){}}view.x+=dx;view.y+=dy;apply();last={x:e.clientX,y:e.clientY}}}});
+const up=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size){last=null;vp.classList.remove('drag');setTimeout(()=>moved=false,0)}else{const v=[...ptrs.values()][0];last={x:v.x,y:v.y}}};
+vp.addEventListener('pointerup',up);vp.addEventListener('pointercancel',up);
+// ホイールの扱い：ピンチ（ctrl つき）とマウスのホイール（行単位、または大きな整数の刻み）は拡大縮小。
+// トラックパッドの二本指（ピクセル単位の細かい値）は移動。
+vp.addEventListener('wheel',e=>{e.preventDefault();cancelAnimationFrame(anim);
+  if(e.ctrlKey){zoomAt(Math.exp(-e.deltaY*0.01),e.clientX,e.clientY);return}
+  const mouse=e.deltaMode!==0||(e.deltaX===0&&Number.isInteger(e.deltaY)&&Math.abs(e.deltaY)>=50);
+  if(mouse){const unit=e.deltaMode===1?16:e.deltaMode===2?400:1;zoomAt(Math.exp(-e.deltaY*unit*0.0018),e.clientX,e.clientY)}
+  else{view.x-=e.deltaX;view.y-=e.deltaY;apply()}},{passive:false});
+let gs=1;vp.addEventListener('gesturestart',e=>{e.preventDefault();gs=1});
+vp.addEventListener('gesturechange',e=>{e.preventDefault();if(ptrs.size>=2)return;zoomAt(e.scale/gs,e.clientX,e.clientY);gs=e.scale});
+const center=()=>{const a=area();return [a.x+a.w/2,a.y+a.h/2]};
+$('zin').onclick=()=>zoomAt(1.4,...center());$('zout').onclick=()=>zoomAt(1/1.4,...center());$('zfit').onclick=()=>fit(true);
+window.addEventListener('resize',()=>{syncBar();apply()});syncBar();
+try{document.fonts.ready.then(syncBar)}catch(_){}
+try{new ResizeObserver(syncBar).observe(document.querySelector('.bar'))}catch(_){}
+
+// ---- アドレスの # で開く
+function setHash(id){try{const h=id?'#'+id:'';if(location.hash!==h)history.replaceState(null,'',location.pathname+location.search+h)}catch(_){}}
+function route(){const id=decodeURIComponent(location.hash.slice(1));if(cardById[id])openCard(id,true);else if(chById[id])openChapter(id,true)}
+// ---- 読んだ記録：カードごとに読んだ回数、最後に読んだ時刻、前の時刻の並び（もどす用）。
+// 置き場は db（data/users/<自分のid>/ の下、本人だけが読み書きできる場所）。db が使えない表示のときだけ、この端末のブラウザに残す。
+// db の記録を読み終えるまでは、ボタンを押せない（読む前の 0 から数えて上書きしないため）。
+let waitNote='',msgs={},lastChSig='',reads={},store=null,storeKind='',ready=false,note='',readonly=false,busy={},curCh=null,unsub=null;
+function ymd(iso){const d=new Date(iso);if(isNaN(d))return '';const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
+function readBox(id){const r=reads[id],n=r?r.n:0,off=!ready||readonly||busy[id];
+  const st=!ready?'記録を読み込んでいる':n?`<b>${n}回</b>読んだ（最後は <span style="white-space:nowrap">${esc(ymd(r.at))}</span>）`:'まだ読んでいない';
+  return `<div class="readbox" data-rb="${id}"><span class="st" tabindex="-1">${st}${(()=>{const m=readonly&&note?note:(msgs[id]?msgs[id].t:'');return m?`<br><span class="em">${esc(m)}</span>`:''})()}</span>`+
+    `<button class="readbtn" data-read="${id}" ${off?'disabled':''}>読んだ（${n+1}回目）</button>`+(n?`<button class="undobtn" data-undo="${id}" ${off?'disabled':''}>1回もどす</button>`:'')+
+    `<div class="store" style="flex-basis:100%">${esc(waitNote||(storeKind==='db'?'記録はあなたのアカウントに保存され、ほかの端末でも見える':storeKind==='local'?'記録はこの端末のブラウザにだけ残る':''))}</div></div>`}
+function paintReads(){
+  let done=0;D.cards.forEach(k=>{const r=reads[k.id],el=$('c-'+k.id);if(r)done++;
+    if(el){el.classList.toggle('read',!!r);const b=$('rd-'+k.id);if(b)b.textContent=r?`✓ ${r.n}回`:''}});
+  document.querySelectorAll('#index .si').forEach(b=>b.classList.toggle('read',!!reads[b.dataset.card]));
+  const pg=$('prog');pg.hidden=!ready;pg.innerHTML=`読んだ <b>${done}</b> / ${D.cards.length}`;
+  // 描き直しでフォーカスが消えないように、#detail の中でフォーカスしていた場所を覚えておく
+  const ae=document.activeElement,inDet=ae&&$('detail').contains(ae);let keep=null;
+  if(inDet){const box=ae.closest('[data-rb]');
+    if(box){const id=box.dataset.rb;keep={id,idx:[...document.querySelectorAll(`#detail [data-rb="${id}"]`)].indexOf(box),kind:ae.dataset.read?'read':ae.dataset.undo?'undo':'st'}}
+    else if(ae.dataset&&(ae.dataset.card||ae.dataset.ch))keep={sel:ae.dataset.card?`[data-card="${ae.dataset.card}"]`:`[data-ch="${ae.dataset.ch}"]`}
+    else if(ae.matches('a[href]')){const h=ae.getAttribute('href');keep={href:h,idx:[...$('detail').querySelectorAll('a[href]')].filter(a=>a.getAttribute('href')===h).indexOf(ae)}}}
+  document.querySelectorAll('#detail [data-rb]').forEach(el=>{el.outerHTML=readBox(el.dataset.rb)});
+  if(!$('detail').hidden&&sel&&msgs[sel])msgs[sel].seen=true;
+  if(curCh&&!$('detail').hidden){const sig=curCh+':'+chById[curCh].cards.map(k=>reads[k.id]?reads[k.id].n:0).join(',');
+    if(sig!==lastChSig){lastChSig=sig;const p=$('detail'),top=p.scrollTop;openChapter(curCh,false,true);p.scrollTop=top}}
+  const lost=()=>!document.activeElement||document.activeElement===document.body;
+  const focusBox=k=>{const box=document.querySelectorAll(`#detail [data-rb="${k.id}"]`)[k.idx];if(!box)return;
+    let t=k.kind==='st'?null:(box.querySelector(`[data-${k.kind}]`)||box.querySelector('[data-read]'));if(!t||t.disabled)t=box.querySelector('.st');if(t)t.focus({preventScroll:true})};
+  if(focusKey&&!busy[focusKey.id]){const fk=focusKey;focusKey=null;if(lost())focusBox(fk)}
+  if(keep&&lost()){
+    if(keep.sel){const t=document.querySelector('#detail '+keep.sel);if(t)t.focus({preventScroll:true})}
+    else if(keep.href!==undefined){const t=[...$('detail').querySelectorAll('a[href]')].filter(a=>a.getAttribute('href')===keep.href)[keep.idx];if(t)t.focus({preventScroll:true})}
+    else if(!(focusKey&&focusKey.id===keep.id))focusBox(keep)}
+}
+let focusKey=null;
+async function initReads(){
+  paintReads();
+  let db=null,uid=null;
+  try{const c=window.claude&&window.claude.use?window.claude:null;
+    if(c){db=await c.use('db');const user=await c.use('user');uid=db&&user?await user.id():null}}catch(_){db=null}
+  if(!db||!uid){useLocal();return}
+  store=db.collection('data/users/'+uid);storeKind='db';
+  const t=setTimeout(()=>{if(!ready){waitNote='記録にまだつながらない。しばらく待つか、ページを開き直して';paintReads()}},10000);
+  unsub=store.onSnapshot(snap=>{
+    const m={};snap.docs.forEach(d=>{const v=d.data();if(v&&v.n>0)m[d.id]={n:v.n,at:String(v.at||''),hist:Array.isArray(v.hist)?v.hist.slice():[]}});
+    Object.keys(msgs).forEach(k=>{if(JSON.stringify(m[k]||null)!==JSON.stringify(reads[k]||null))delete msgs[k]});
+    reads=m;if(!snap.metadata.fromCache){clearTimeout(t);ready=true;waitNote=''}paintReads()},
+    e=>{clearTimeout(t);readonly=true;ready=true;waitNote='';note='記録を読めなくなった（'+(e&&e.code||'error')+'）。ページを開き直して';paintReads()});
+}
+function useLocal(){store=null;storeKind='local';try{reads=JSON.parse(localStorage.getItem('dva-reads')||'{}')||{}}catch(_){reads={}}ready=true;paintReads()}
+async function markRead(id,delta){
+  if(!ready||readonly||busy[id])return;
+  const before=reads[id],cur=before?before.n:0,n=Math.max(0,cur+delta);if(n===cur)return;
+  let next=null;
+  if(delta>0){const hist=before?[...(before.hist||[]),before.at].slice(-20):[];next={n,at:new Date().toISOString(),hist}}
+  else if(n>0){const hist=(before.hist||[]).slice();const at=hist.pop()||before.at;next={n,at,hist}}
+  if(next)reads[id]=next;else delete reads[id];
+  busy[id]=true;paintReads();
+  const write=async()=>{if(store){const d=store.doc(id);if(next)await d.set(next);else await d.delete()}
+    else{try{localStorage.setItem('dva-reads',JSON.stringify(reads))}catch(_){}}};
+  let msg='',failed=false,code='';
+  try{await write()}catch(e){failed=true;code=e&&e.code||'error';
+    const known=['invalid_argument','resource_exhausted','quota_exceeded','revoked','not_granted','capability_disabled','capability_removed','transform_error'];
+    if(!known.includes(code)){await new Promise(r=>setTimeout(r,300+Math.random()*500));try{await write();failed=false}catch(e2){code=e2&&e2.code||'error'}}}
+  if(failed){
+    if(before)reads[id]=before;else delete reads[id];
+    if(code==='invalid_argument'||code==='not_granted'||code==='transform_error'){readonly=true;msg='この表示では記録を書けない';note=msg}
+    else if(code==='resource_exhausted')msg='操作が多すぎる。少し待ってから押して';
+    else if(code==='quota_exceeded')msg='保存できる量を超えた';
+    else if(code==='revoked'||code==='capability_disabled'||code==='capability_removed'){readonly=true;msg='記録が使えなくなった。ページを開き直して';note=msg}
+    else msg='保存できなかった。少し待ってもう一度押して';
+  }
+  if(msg&&!readonly)msgs[id]={t:msg};else delete msgs[id];
+  busy[id]=false;paintReads();
+  if(msg){const a=document.activeElement,onSt=a&&a.classList&&a.classList.contains('st')&&a.closest(`[data-rb="${id}"]`);
+    const said=readonly&&note?note:msg;
+    if(!onSt)announce(id===sel?said:`「${cardById[id].title}」の記録：${said}`)}
+}
+function announce(msg){const l=$('live');l.textContent='';setTimeout(()=>{l.textContent=msg},50)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+})();
+</script>
+
+</body>
+</html>
