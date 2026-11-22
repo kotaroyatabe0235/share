@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>職業の地図</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a pannable atlas. Sectors are regions, industries are territories, flow stages run left to right inside each territory, occupations are the settlements. */
+:root{
+  --ground:#e9edf0; --grid:#d6dde3; --card:#fbfcfd; --ink:#18232d; --muted:#4d5c68; --line:#c3ccd4; --accent:#1d5f8a; --hit:#e0a100;
+  --panel:#ffffff; --shadow:0 1px 2px rgba(24,35,45,.08),0 6px 24px rgba(24,35,45,.08);
+  --s1:#3b6b2a; --s2:#84481f; --s3:#265d96; --s4:#983163; --s5:#7d5200; --s6:#4c4796; --s7:#166a64; --s8:#425467; --s9:#a13b28;
+  --km:#9a5600; --ko:#24702a; --kh:#b02d68; --ki:#1f5ea6;
+  --f-display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0f161c; --grid:#1b252e; --card:#16212a; --ink:#e3eaf0; --muted:#93a4b2; --line:#2d3b47; --accent:#6db3e4; --hit:#ffc533;
+  --panel:#18242e; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.4);
+  --s1:#7cc066; --s2:#d99258; --s3:#6aa6e6; --s4:#e57cb2; --s5:#e6a84a; --s6:#9a95e6; --s7:#4fc4bb; --s8:#9db0c4; --s9:#ee8a74; --km:#f0a447; --ko:#72c477; --kh:#f07db3; --ki:#70acf2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0f161c; --grid:#1b252e; --card:#16212a; --ink:#e3eaf0; --muted:#93a4b2; --line:#2d3b47; --accent:#6db3e4; --hit:#ffc533;
+  --panel:#18242e; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.4);
+  --s1:#7cc066; --s2:#d99258; --s3:#6aa6e6; --s4:#e57cb2; --s5:#e6a84a; --s6:#9a95e6; --s7:#4fc4bb; --s8:#9db0c4; --s9:#ee8a74; --km:#f0a447; --ko:#72c477; --kh:#f07db3; --ki:#70acf2; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-body);overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* top bar */
+.bar{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:7;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:color-mix(in oklab,var(--panel) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:20px;letter-spacing:.04em}
+.brand .stat{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.search{position:relative;flex:1 1 220px;min-width:0;max-width:420px;margin-left:auto}
+.search input::placeholder{color:var(--muted);opacity:1}
+.search input{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 12px;font-size:16px}
+.results{position:absolute;top:calc(100% + 6px);left:0;right:0;max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
+.results button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+.results button:hover,.results button.sel{background:color-mix(in oklab,var(--accent) 12%,transparent)}
+.results .rn{font-weight:700;font-size:14px}
+.results .rp{font-size:12px;color:var(--muted)}
+.results .empty{padding:10px;color:var(--muted);font-size:13px}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
+.iconbtn:hover{border-color:var(--accent)}
+
+/* viewport and world */
+#vp{position:fixed;inset:0;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:48px 48px}
+#vp.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0;width:4600px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:520px 360px;padding:520px 80px 80px}
+.sector{display:flex;flex-direction:column;gap:28px}
+.sector>h2{margin:0;font-family:var(--f-display);font-weight:400;color:var(--sc);font-size:40px;line-height:1.1;letter-spacing:.06em;transform-origin:left bottom;white-space:nowrap}
+.cards{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+.ind{background:var(--card);border:1px solid var(--line);border-top:6px solid var(--sc);border-radius:6px;box-shadow:var(--shadow);padding:18px 20px 20px;position:relative}
+.ind>header{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;max-width:100%}
+.ind h3{margin:0;font-size:24px;font-weight:700;letter-spacing:.02em}
+.ind .cnt{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.ind .idesc{font-size:13px;color:var(--muted);margin:0 0 14px;max-width:60em}
+.flows{display:flex;flex-direction:column;gap:22px}
+.flowrow{display:flex;flex-direction:column;gap:8px}
+.ftitle{display:flex;align-items:baseline;gap:10px;font-size:15px;font-weight:700;color:var(--ink)}
+.ftitle::before{content:"";width:10px;height:10px;border-radius:2px;background:var(--sc);flex:none;align-self:center}
+.ftitle small{font-weight:400;font-size:12px;color:var(--muted)}
+.flow{display:flex;align-items:stretch;gap:0}
+.stage{width:150px;display:flex;flex-direction:column;gap:5px}
+.stage .sh{display:block;width:100%;text-align:left;border:0;cursor:pointer;font-size:13px;font-weight:700;color:var(--sc);padding:6px 8px;background:color-mix(in oklab,var(--sc) 12%,var(--card));border-radius:4px;position:relative}
+.stage .sh:hover{background:color-mix(in oklab,var(--sc) 22%,var(--card))}
+.stage .sh.cur{outline:2px solid var(--sc);outline-offset:1px}
+.sh .pl{display:inline-block;margin:4px 4px 0 0;font-style:normal;font-weight:500;font-size:10px;line-height:1.5;padding:0 6px;border-radius:8px;border:1px solid currentColor;color:var(--muted)}
+.sh .pl.lk{color:var(--accent)}
+.sh .pl.je{color:var(--ko)}
+.stage .sh small{display:block;font-weight:400;color:var(--muted);font-size:11px;line-height:1.35;margin-top:2px}
+.sep{width:22px;flex:none;display:flex;justify-content:center}
+.sep::before{content:"";border-left:2px dashed color-mix(in oklab,var(--sc) 45%,var(--line))}
+.arrow{width:22px;flex:none;display:flex;align-items:flex-start;justify-content:center;padding-top:10px;color:var(--sc);font-size:16px;opacity:.7}
+.job{display:block;width:100%;text-align:left;border:1px solid color-mix(in oklab,var(--sc) 28%,var(--line));background:var(--card);border-radius:4px;padding:4px 7px;font-size:12px;line-height:1.35;cursor:pointer}
+.job.away{border-style:dashed}
+.job.same{border-color:var(--sc);box-shadow:0 0 0 2px color-mix(in oklab,var(--sc) 55%,transparent)}
+.job:hover{border-color:var(--sc);background:color-mix(in oklab,var(--sc) 8%,var(--card))}
+.job.cur{outline:2px solid var(--sc);outline-offset:1px}
+.bigname{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;pointer-events:none;
+  font-family:var(--f-display);color:var(--sc);font-size:var(--bn,40px);line-height:1.15;padding:4%;box-sizing:border-box;word-break:break-all;
+  background:color-mix(in oklab,var(--card) 70%,transparent)}
+/* far zoom: hide fine text, show territory names */
+#world.far .bigname{display:flex}
+#world.far .job{color:transparent;border-color:transparent;background:color-mix(in oklab,var(--sc) 30%,var(--card))}
+#world.far .sh,#world.far .ind header,#world.far .idesc,#world.far .ftitle{visibility:hidden}
+#world.mid .idesc,#world.mid .sh small,#world.mid .ftitle small{visibility:hidden}
+/* search highlight */
+#world.searching .job{opacity:.25}
+#world.searching .job.hit{opacity:1;border-color:var(--hit);box-shadow:0 0 0 2px var(--hit);color:var(--ink)}
+#world.searching.far .job.hit{background:var(--hit);color:transparent}
+#world.searching .job.cur,#world.searching .job.same{opacity:1}
+/* law highlight */
+#world.lawing .job{opacity:.25}
+#world.lawing .stage.lawhit .job,#world.lawing .job.lawhit{opacity:1}
+#world.lawing .job.lawhit{border-color:var(--hit);box-shadow:0 0 0 2px var(--hit)}
+#world.lawing .stage.lawhit .sh{box-shadow:0 0 0 3px var(--hit)}
+#world.lawing.far .stage.lawhit .job,#world.lawing.far .job.lawhit{background:var(--hit)}
+/* links between industries, drawn in screen space */
+#links{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:hidden}
+#links .ln{fill:none;stroke-width:1.8;opacity:.85;stroke-linecap:round}
+#links .ah{stroke:none;opacity:.85}
+#links .on{stroke-width:3.4;opacity:1}
+#links .off{opacity:.12}
+#links .ln.km{stroke:var(--km)} #links .ln.ko{stroke:var(--ko)} #links .ln.kh{stroke:var(--kh)} #links .ln.ki{stroke:var(--ki)}
+#links .ah.km{fill:var(--km)} #links .ah.ko{fill:var(--ko)} #links .ah.kh{fill:var(--kh)} #links .ah.ki{fill:var(--ki)}
+.sw{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.sw.km{background:var(--km)} .sw.ko{background:var(--ko)} .sw.kh{background:var(--kh)} .sw.ki{background:var(--ki)}
+.legend{position:fixed;z-index:4;left:max(16px,calc(env(safe-area-inset-left,0px) + 12px));bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;max-width:calc(100vw - 110px)}
+.legend[hidden]{display:none}
+body.links-on .hint{display:none}
+.iconbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+
+/* zoom controls */
+.zoom{position:fixed;z-index:4;right:max(16px,calc(env(safe-area-inset-right,0px) + 12px));bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:6px}
+.zoom button{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);cursor:pointer;font-size:18px}
+.zoom .pct{font-family:var(--f-mono);font-size:11px;text-align:center;color:var(--muted);background:var(--panel);border-radius:6px;padding:3px 0;border:1px solid var(--line)}
+.hint{position:fixed;z-index:4;left:max(16px,calc(env(safe-area-inset-left,0px) + 12px));bottom:calc(env(safe-area-inset-bottom,0px) + 16px);font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;max-width:calc(100vw - 110px)}
+
+/* sector names in screen space at far zoom */
+#tags{position:fixed;inset:0;pointer-events:none;z-index:3}
+#tags div{position:absolute;font-family:var(--f-display);font-size:18px;line-height:1.3;color:var(--sc);background:color-mix(in oklab,var(--panel) 88%,transparent);
+  border:1px solid var(--line);border-radius:6px;padding:1px 8px;white-space:nowrap;transform:translateY(-100%)}
+#tags[hidden]{display:none}
+#world.far .sector>h2{visibility:hidden}
+body.detail-open .zoom{right:calc(372px + max(16px,env(safe-area-inset-right,0px)))}
+@media (max-width:640px){body.detail-open .zoom,body.detail-open .legend{display:none}}
+body.detail-open .hint{display:none}
+@media (max-width:1000px){.hint{display:none}}
+/* side panels */
+.panel{box-sizing:border-box;position:fixed;z-index:6;background:var(--panel);box-shadow:var(--shadow);border:1px solid var(--line);overflow:auto}
+#detail{top:calc(var(--bar,62px) + 8px);right:max(16px,calc(env(safe-area-inset-right,0px) + 12px));width:340px;max-height:calc(100% - var(--bar,62px) - 98px);border-radius:10px;padding:18px 20px}
+#index,#laws,#acct{top:calc(var(--bar,62px) + 8px);left:max(16px,calc(env(safe-area-inset-left,0px) + 12px));width:300px;max-height:calc(100% - var(--bar,62px) - 98px);border-radius:10px;padding:14px 16px}
+.close{position:sticky;top:0;float:right;margin:-6px -8px 0 8px;z-index:1;border:0;background:var(--panel);font-size:20px;cursor:pointer;color:var(--muted);width:32px;height:32px;border-radius:6px}
+.close:hover{background:color-mix(in oklab,var(--accent) 10%,transparent)}
+.crumb{font-size:12px;color:var(--muted);margin:0 0 6px;padding-right:30px}
+.crumb b{color:var(--sc);font-weight:700}
+#detail h2{margin:0 0 10px;font-size:22px;line-height:1.3;text-wrap:balance}
+#detail .sum{font-size:15px;line-height:1.75;margin:0 0 16px}
+.flowline{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:0 0 16px;font-size:12px}
+.flowline span{padding:3px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.flowline span.on{background:var(--sc);border-color:var(--sc);color:var(--card);font-weight:700}
+.flowline i{font-style:normal;color:var(--muted)}
+.lbl{font-size:11px;letter-spacing:.08em;color:var(--muted);margin:0 0 6px}
+.sib{display:flex;flex-wrap:wrap;gap:6px}
+.sib button{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:4px 10px;font-size:12px;cursor:pointer}
+.sib button:hover{border-color:var(--sc)}
+.where{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:2px}
+.where button{width:100%;text-align:left;border:0;background:none;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;line-height:1.45}
+.where button:hover{background:color-mix(in oklab,var(--accent) 10%,transparent)}
+.where button.on{background:color-mix(in oklab,var(--sc) 14%,transparent)}
+.where small{display:block;color:var(--muted);font-size:11px}
+.home{font-size:12px;color:var(--muted);margin:0 0 14px}
+.where .nt{display:block;font-size:12px;color:var(--ink);margin-top:2px}
+.where .sw{margin-right:4px}
+.muted{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 16px}
+.stepbtn{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 10px;margin:4px 0 16px;cursor:pointer;font-size:13px}
+.stepbtn:hover{border-color:var(--sc,var(--accent))}
+.ext{font-size:13px;color:var(--accent)}
+.rk{font-size:10px;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:6px;font-weight:400}
+#index li.fl button{padding:3px 8px 3px 20px;font-size:12px;color:var(--muted)}
+#index h2,#laws h2,#acct h2{margin:0 0 4px;font-size:15px}
+#index .note,#laws .note,#acct .note{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 12px;padding-right:24px}
+#index h3,#laws h3,#acct h3{margin:14px 0 6px;font-size:12px;letter-spacing:.06em;color:var(--sc)}
+#index ul,#laws ul,#acct ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+#index li button,#laws li button,#acct li button{width:100%;display:flex;justify-content:space-between;gap:8px;border:0;background:none;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;text-align:left}
+#index li button:hover,#laws li button:hover,#acct li button:hover{background:color-mix(in oklab,var(--sc) 12%,transparent)}
+#index li .n,#laws li .n,#acct li .n{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.je{border:1px solid var(--line);border-radius:8px;padding:8px 10px 6px;margin:0 0 8px;background:var(--card)}
+.je .who{font-size:11px;color:var(--muted);margin:0}
+.je .what{font-size:13px;line-height:1.55;margin:2px 0 6px}
+.je .tt{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.je .tt>div{padding:4px 6px 2px;min-width:0}
+.je .tt>div+div{border-left:1px solid var(--line)}
+.je .side{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted)}
+.je .ac{display:block;border:0;background:none;padding:2px 0;margin:0;font-size:13px;line-height:1.4;color:var(--accent);cursor:pointer;text-align:left;text-decoration:underline dotted;text-underline-offset:3px}
+.je .ac.on{font-weight:700;text-decoration:underline}
+.je .cash{font-size:13px;border-top:1px solid var(--line);padding:4px 0 2px}
+.je .jn{font-size:12px;color:var(--muted);line-height:1.55;margin:6px 0 0}
+.where .je{margin:2px 8px 8px 22px}
+.src{font-size:13px;line-height:1.6;margin:0 0 16px}
+.src small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.je .tag{font-size:11px;color:var(--muted);margin:0 0 2px}
+.fold{margin:0 0 8px}
+.fold summary{cursor:pointer;font-size:12px;color:var(--accent);margin:0 0 8px}
+@media (max-width:1250px){.brand .stat{display:none}}
+.loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+
+@media (max-width:640px){
+  .brand .stat,.iconbtn .lg{display:none}
+  .iconbtn{padding:7px 10px}
+  .search{flex-basis:100%;max-width:none;order:3}
+  #detail{left:0;right:0;bottom:0;top:auto;width:auto;max-height:55%;border-radius:14px 14px 0 0;
+    padding:18px max(16px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 18px) max(16px,env(safe-area-inset-right,0px))}
+  #index,#laws,#acct{left:0;right:0;width:auto;top:auto;bottom:0;max-height:65%;border-radius:14px 14px 0 0;
+    padding:14px max(16px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 14px) max(16px,env(safe-area-inset-right,0px))}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">地図を読み込んでいます…</div>
+
+<div class="bar">
+  <div class="brand"><h1>職業の地図</h1><span class="stat" id="stat"></span></div>
+  <button class="iconbtn" id="btnIndex" aria-expanded="false" aria-controls="index">業種<span class="lg">の一覧</span></button>
+  <button class="iconbtn" id="btnLaws" aria-expanded="false" aria-controls="laws">法律<span class="lg">の一覧</span></button>
+  <button class="iconbtn" id="btnAcct" aria-expanded="false" aria-controls="acct">会計<span class="lg">の一覧</span></button>
+  <button class="iconbtn" id="btnLinks" aria-pressed="false"><span class="lg">業種の</span>つながり</button>
+  <div class="search">
+    <input id="q" type="search" placeholder="職業・法律・勘定科目を探す" autocomplete="off" aria-label="職業や法律や勘定科目を探す">
+    <div class="results" id="results" hidden></div>
+  </div>
+</div>
+
+<div class="zoom">
+  <button id="zin" aria-label="拡大">＋</button>
+  <div class="pct" id="pct">100%</div>
+  <button id="zout" aria-label="縮小">－</button>
+  <button id="zfit" aria-label="全体を表示" title="全体を表示" style="font-size:13px">全体</button>
+</div>
+<div class="hint">ドラッグで移動、ホイールやピンチで拡大縮小。職業を選ぶと、関わる段階が全部光ります。段階の見出しを選ぶと、ほかの業種とのつながりと、法律と、仕訳が出ます。</div>
+<div class="legend" id="legend" hidden><b>つながりの線（矢印の向きに渡る）</b><span><i class="sw km"></i>もの</span><span><i class="sw ko"></i>お金</span><span><i class="sw kh"></i>人</span><span><i class="sw ki"></i>情報</span></div>
+
+<aside class="panel" id="index" hidden>
+  <button class="close" data-close="index" aria-label="閉じる">×</button>
+  <h2>業種の一覧</h2>
+  <p class="note">業種ごとに、実際の仕事の単位で流れを何本か置き、流れの段階を左から右へ並べています。各段階には、その段階に関わる職業を並べました。順番のない分野のまとまりは、矢印ではなく点線で区切っています。1つの職業は、関わる段階のすべてに出てきます。職業を選ぶと、ほかの段階に出ているところも光ります。点線の枠の職業は、ふだんは別の業種で働く人です。段階の見出しを選ぶと、その段階がほかの業種のどの段階とつながっているか（もの・お金・人・情報のどれが渡るか）と、かかわる法律と、仕訳の例が出ます。見出しの「つながり」「法律」「仕訳」の印は、その数です。「仕訳」の数には、お金のつながりで、その段階の側がつける仕訳も入ります。上の「業種のつながり」を押すと、つながりの線を地図全体に引きます。流れは一般的な例をまとめたもので、会社や地域によって順番や担い手は変わります。業種の分け方も、公的な職業分類とは異なる独自のものです。</p>
+  <details class="fold"><summary>出典と、確かめた日</summary>
+  <p class="note">職業の資格や手続き、法律、勘定科目の記述は、e-Gov法令検索（laws.e-gov.go.jp）の現行の条文を主な出典にし、そのほかは資格や制度を所管する省庁などの公式の情報で確かめました。確かめたのは2026年11月です。法律の一覧と、法令に名前のある勘定科目には、条文へのリンクがあります。仕事の流れ・職業の並べ方・仕訳は、一般的な例としてまとめたもので、特定の出典の写しではありません。</p>
+  </details>
+  <div id="indexList"></div>
+</aside>
+
+<aside class="panel" id="laws" hidden>
+  <button class="close" data-close="laws" aria-label="閉じる">×</button>
+  <h2>法律の一覧</h2>
+  <p class="note">仕事の流れにかかわる、日本の主な法律です。法律を選ぶと、その法律がかかわる段階と職業が地図の上で光り、何を決めているかが出ます。法律と段階の結びつきは、主なものを選んで載せたもので、すべてではありません。かっこの中の条は、e-Gov法令検索の現行の条文で確かめました（2026年11月）。説明は、条文をやさしく言い換えたものです。正確な中身は、条文を読んでください。</p>
+  <div id="lawList"></div>
+</aside>
+
+<aside class="panel" id="acct" hidden>
+  <button class="close" data-close="acct" aria-label="閉じる">×</button>
+  <h2>会計の一覧</h2>
+  <p class="note">お金や物が動いた段階に、帳簿に書く仕訳の例を載せました。科目を選ぶと、その科目が出てくる段階が地図の上で光ります。仕訳は一般的な例で、金額と消費税は省いています。</p>
+  <details class="fold"><summary>仕訳の読み方と、載せ方</summary>
+  <p class="note">仕訳は、1つの取引を左と右に分けて書くものです。左を借方、右を貸方と呼びます。資産が増えたら左、負債や純資産が増えたら右に書きます。費用は左、収益は右です。減ったときは、反対の側に書きます。たとえば、売掛金という資産が、代金を受け取って減ったときは、右に書きます。左と右の金額は、必ず同じになります。</p>
+  <p class="note">段階の仕訳には、その段階で起きる代表的な取引を載せました。お金のつながりの多くには、払う側と受け取る側の両方の仕訳を載せています。片方だけのものもあります。</p>
+  <p class="note">会社の科目の名前は、上場会社などが出す財務諸表の決まり（財務諸表等規則）に合わせました。銀行・保険・電気・社会福祉法人・学校法人・病院・水道は、それぞれの会計の決まりに載っている名前です。法令に名前がなく、帳簿でよく使う名前のものは、そう書いています。法令の条は、e-Gov法令検索の現行の条文で確かめました（2026年11月）。</p>
+  <p class="note">国と自治体の会計は、会社のような仕訳ではなく、1年度の収入と支出を、歳入と歳出として記録します。国では、収入と支出は、現金を受け取ることと払うことです（財政法2条）。自治体の歳入と歳出がどの年度に入るかは、地方自治法施行令の決まりによります。実際の処理は、会社や取引によって変わります。</p>
+  </details>
+  <div id="acctList"></div>
+</aside>
+
+<aside class="panel" id="detail" hidden>
+  <button class="close" data-close="detail" aria-label="閉じる">×</button>
+  <p class="crumb" id="dCrumb"></p>
+  <h2 id="dName" tabindex="-1"></h2>
+  <div id="dBody"></div>
+</aside>
+
+<div id="vp"><div id="world"></div></div>
+<svg id="links" aria-hidden="true" style="display:none"></svg>
+<div id="tags" hidden></div>
+
+<script>
+(function(){
+const SECTOR_COLOR={"一次産業":"--s1","二次産業":"--s2","情報・メディア":"--s3","エンタメ・芸術":"--s4","インフラ・流通":"--s5","ビジネス・専門":"--s6","医療・福祉・教育":"--s7","公共・安全":"--s8","暮らし・サービス":"--s9"};
+const vp=document.getElementById('vp'), world=document.getElementById('world');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let D=[], JM=[], INST=[], SECT=[], LINKS=[], LAWS=[], ACCTS=[], SRC=[], STEPS=[], view={x:0,y:0,z:1}, curEl=null, curJob=null, curStep=null, curLaw=null, curAcct=null, linksOn=false;
+const KIND={'もの':'km','お金':'ko','人':'kh','情報':'ki'};
+const $=id=>document.getElementById(id);
+const tags=document.getElementById('tags');
+const MINZ=0.012, MAXZ=2.5;
+
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+
+function build(){
+  JM.forEach(j=>{j.inst=[]});
+  const sectors=[];
+  D.forEach(ind=>{let s=sectors.find(x=>x.name===ind.sector);if(!s){s={name:ind.sector,inds:[]};sectors.push(s)}s.inds.push(ind)});
+  sectors.forEach(sec=>{
+    const sw=el('section','sector');sw.style.setProperty('--sc',`var(${SECTOR_COLOR[sec.name]||'--accent'})`);
+    sw.appendChild(el('h2',null,sec.name));
+    const cards=el('div','cards');
+    sec.inds.forEach(ind=>{
+      const card=el('article','ind');card.id='ind-'+ind.id;ind.el=card;
+      const ids=new Set();ind.flows.forEach(f=>f.steps.forEach(st=>st.jobs.forEach(k=>ids.add(k))));ind.njobs=ids.size;
+      const hd=el('header');hd.appendChild(el('h3',null,ind.name));hd.appendChild(el('span','cnt',`${ind.flows.length}本の流れ・${ind.njobs}職業`));
+      card.appendChild(hd);card.appendChild(el('p','idesc',ind.desc));
+      const fw=el('div','flows');
+      ind.flows.forEach((f,fi)=>{
+        const row=el('div','flowrow');f.el=row;
+        const ft=el('div','ftitle',f.name);ft.appendChild(el('small',null,f.group?f.desc+'（順番のない、分野のまとまり）':f.desc));row.appendChild(ft);
+        const flow=el('div','flow');
+        f.steps.forEach((st,si)=>{
+          if(si>0)flow.appendChild(f.group?el('div','sep'):el('div','arrow','→'));
+          const col=el('div','stage');
+          const sh=el('button','sh',st.name);sh.type='button';sh.appendChild(el('small',null,st.desc));
+          if(st.links.length)sh.appendChild(el('i','pl lk',`つながり${st.links.length}`));
+          if(st.laws.length)sh.appendChild(el('i','pl',`法律${st.laws.length}`));
+          const nj=jeCount(st);if(nj)sh.appendChild(el('i','pl je',`仕訳${nj}`));
+          Object.assign(st,{el:sh,col,ind,f,si});sh._st=st;STEPS.push(st);col.appendChild(sh);
+          st.jobs.forEach(k=>{
+            const job=JM[k];
+            const b=el('button','job'+(job.hi!==ind.id?' away':''),job.n);b.type='button';
+            const rec={job,ind,f,st,fi,si,el:b};job.inst.push(rec);INST.push(rec);b._rec=rec;
+            col.appendChild(b);
+          });
+          flow.appendChild(col);
+        });
+        row.appendChild(flow);fw.appendChild(row);
+      });
+      card.appendChild(fw);
+      card.appendChild(el('div','bigname',ind.name));
+      cards.appendChild(card);
+    });
+    sw.appendChild(cards);world.appendChild(sw);sec.el=sw;
+    const tg=el('div',null,sec.name);tg.style.setProperty('--sc',`var(${SECTOR_COLOR[sec.name]||'--accent'})`);tags.appendChild(tg);
+    SECT.push({el:sw,tag:tg,x:0,y:0});
+  });
+  const nf=D.reduce((a,i)=>a+i.flows.length,0);
+  document.getElementById('stat').textContent=`${D.length}業種・${nf}本の流れ・${JM.length}職業・${LINKS.length}本のつながり・${LAWS.length}の法律・${ACCTS.length}の勘定科目`;
+  // index: industries, and their flows
+  const il=document.getElementById('indexList');
+  sectors.forEach(sec=>{
+    const wrap=el('div');wrap.style.setProperty('--sc',`var(${SECTOR_COLOR[sec.name]||'--accent'})`);
+    wrap.appendChild(el('h3',null,sec.name));
+    const ul=el('ul');
+    sec.inds.forEach(ind=>{const li=el('li');const b=el('button');b.type='button';
+      b.appendChild(el('span',null,ind.name));b.appendChild(el('span','n',String(ind.njobs)));
+      b.onclick=()=>{if(innerWidth<=640)togglePanel('index',false);flyToEl(ind.el,'region')};
+      li.appendChild(b);ul.appendChild(li);
+      ind.flows.forEach(f=>{const l2=el('li','fl');const b2=el('button');b2.type='button';b2.appendChild(el('span',null,f.name));
+        b2.onclick=()=>{if(innerWidth<=640)togglePanel('index',false);flyToEl(f.el,'region')};l2.appendChild(b2);ul.appendChild(l2)});
+    });
+    wrap.appendChild(ul);il.appendChild(wrap);
+  });
+  const ll=$('lawList');const cats=[];
+  LAWS.forEach(l=>{let c=cats.find(x=>x.n===l.c);if(!c){c={n:l.c,ls:[]};cats.push(c)}c.ls.push(l)});
+  cats.forEach(c=>{const wrap=el('div');wrap.style.setProperty('--sc','var(--accent)');wrap.appendChild(el('h3',null,c.n));const ul=el('ul');
+    c.ls.forEach(l=>{const li=el('li');const b=el('button');b.type='button';b.appendChild(el('span',null,l.n));b.appendChild(el('span','n',String(l.steps.length+l.jobs.length)));
+      b.onclick=()=>{if(innerWidth<=640)togglePanel('laws',false);openLaw(l)};li.appendChild(b);ul.appendChild(li)});
+    wrap.appendChild(ul);ll.appendChild(wrap)});
+  const al=$('acctList');
+  ['資産','負債','純資産','収益','費用','国と自治体'].forEach(c=>{const ls=ACCTS.filter(a=>a.c===c);if(!ls.length)return;
+    const wrap=el('div');wrap.style.setProperty('--sc','var(--ko)');wrap.appendChild(el('h3',null,c));const ul=el('ul');
+    ls.forEach(a=>{const li=el('li');const b=el('button');b.type='button';const s=el('span',null,a.n);if(a.w!=='会社')s.appendChild(el('small',null,'　'+a.w));
+      b.appendChild(s);b.appendChild(el('span','n',String(a.uses.length)));
+      b.onclick=()=>{if(innerWidth<=640)togglePanel('acct',false);openAcct(a)};li.appendChild(b);ul.appendChild(li)});
+    wrap.appendChild(ul);al.appendChild(wrap)});
+}
+// journal entries on a step: its own entries and the money links that touch it
+function sideOf(x){return x.dir==='out'?'a':'b'}
+function jeCount(st){return st.ents.filter(e=>e.m!=='none').length+st.links.reduce((n,x)=>n+x.l.ents.filter(e=>e.sd===sideOf(x)).length,0)}
+// links and laws from data.json, attached to steps and jobs before the map is built
+function wire(d){
+  D.forEach(ind=>ind.flows.forEach(f=>f.steps.forEach(st=>{st.links=[];st.laws=[];st.ents=[]})));
+  const S=a=>D[a[0]].flows[a[1]].steps[a[2]];
+  LINKS=(d.links||[]).map(x=>{const a=S(x.a),b=S(x.b),l={a,b,k:x.k,d:x.d,ents:[]};a.links.push({dir:'out',other:b,l});b.links.push({dir:'in',other:a,l});return l});
+  LAWS=(d.laws||[]).map(x=>{const law={n:x.n,c:x.c,p:x.p,id:x.id,steps:[],jobs:[]};
+    x.steps.forEach(s=>{const st=S(s);law.steps.push({st,note:s[3]});st.laws.push({law,note:s[3]})});
+    x.jobs.forEach(([k,note])=>{const job=JM[k];law.jobs.push({job,note});(job.laws||(job.laws=[])).push({law,note})});return law});
+  const A=d.acct||{src:[],accts:[],ents:[],lents:[]};
+  SRC=A.src;ACCTS=A.accts.map(a=>({...a,uses:[]}));
+  const mk=e=>({who:e.who,what:e.what,dr:e.dr.map(i=>ACCTS[i]),cr:e.cr.map(i=>ACCTS[i]),m:e.m,io:e.io,note:e.note});
+  // an account used on both sides of one entry (a transfer between two deposits) is listed once
+  const use=(je,st)=>{[...new Set([...je.dr,...je.cr])].forEach(a=>{const d=je.dr.includes(a),c=je.cr.includes(a);a.uses.push({je,st,side:d&&c?'借方と貸方':d?'借方':'貸方'})})};
+  A.ents.forEach(e=>{const st=S(e.st),je={...mk(e),st};st.ents.push(je);use(je,st)});
+  A.lents.forEach(e=>{const l=LINKS[e.l],je={...mk(e),l,sd:e.sd,st:e.sd==='a'?l.a:l.b};l.ents.push(je);use(je,je.st)});
+}
+// choose the world width so the whole map has roughly the screen's shape (cards are tall now)
+// sectors sit side by side as blocks; each block gets a near-square width, then the world gets the screen's shape
+function layoutWidth(){
+  world.style.width='100000px';
+  SECT.forEach(sc=>{
+    let area=0,maxw=0;
+    sc.el.querySelectorAll('.ind').forEach(c=>{const w=c.offsetWidth,h=c.offsetHeight;area+=(w+36)*(h+36);maxw=Math.max(maxw,w)});
+    sc.el.style.width=Math.max(maxw,Math.round(Math.sqrt(area*1.2)))+'px';
+  });
+  let area=0,maxw=0;
+  SECT.forEach(sc=>{const w=sc.el.offsetWidth,h=sc.el.offsetHeight;area+=(w+360)*(h+520);maxw=Math.max(maxw,w)});
+  const aspect=Math.max(1,Math.min(2.2,innerWidth/Math.max(1,innerHeight-topOffset())));
+  world.style.width=Math.max(maxw+160,Math.round(Math.sqrt(area*aspect)))+'px';
+}
+function measure(){
+  layoutWidth();
+  sizeBigNames();
+  SECT.forEach(sc=>{const r=worldRect(sc.el.querySelector('.cards'));sc.x=r.x;sc.y=r.y-8;sc.h=r.h;sc.w=r.w});
+  STEPS.forEach(st=>{st.r=worldRect(st.el)});
+}
+// size each territory label to its own card, in world units, so it scales with the map
+function sizeBigNames(){
+  D.forEach(ind=>{
+    const W=ind.el.offsetWidth*0.92,H=ind.el.offsetHeight*0.92,n=[...ind.name].length;
+    let best=0;
+    for(let lines=1;lines<=4;lines++){const f=Math.min(W/Math.ceil(n/lines),H/(lines*1.2));if(f>best)best=f}
+    ind.el.style.setProperty('--bn',Math.floor(best*0.95)+'px');
+  });
+}
+
+function apply(){
+  world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.z})`;
+  world.classList.toggle('far',view.z<0.3);
+  tags.hidden=view.z>=0.3;
+  if(view.z<0.3){const tb=topOffset()+30;const placed=[];[...SECT].reverse().forEach(sc=>{
+    const top=view.y+sc.y*view.z,bottom=top+sc.h*view.z;
+    // keep the tag on screen while any of its sector is visible
+    const t=bottom>tb?Math.max(top,tb):top,l=Math.max(view.x+sc.x*view.z,8);
+    sc.tag.style.left=l+'px';sc.tag.style.top=t+'px';
+    // a sector wholly off-screen to the side gets no tag (and blocks no other tag)
+    const left=view.x+sc.x*view.z,right=view.x+(sc.x+sc.w)*view.z;
+    if(right<8||left>=innerWidth){sc.tag.style.visibility='hidden';return}
+    // walking from the last sector back: a tag that would overlap one already placed is hidden
+    const w=sc.tag.offsetWidth||120,box={l,r:l+w,t:t-30,b:t};
+    const clash=placed.some(p=>box.l<p.r&&box.r>p.l&&box.t<p.b&&box.b>p.t);
+    sc.tag.style.visibility=clash?'hidden':'visible';if(!clash)placed.push(box)})}
+  world.classList.toggle('mid',view.z>=0.3&&view.z<0.55);
+  document.getElementById('pct').textContent=Math.round(view.z*100)+'%';
+  drawLinks();
+}
+// lines between steps of different industries; drawn in screen space so width and arrowheads keep their size
+const svg=$('links');
+function sbox(st){const r=st.r;return {x:view.x+r.x*view.z,y:view.y+r.y*view.z,w:r.w*view.z,h:r.h*view.z}}
+function edge(B,px,py){ // where the segment from B's center toward (px,py) leaves B
+  const cx=B.x+B.w/2,cy=B.y+B.h/2,dx=px-cx,dy=py-cy;
+  if(!dx&&!dy)return [cx,cy];
+  const t=Math.min(dx?B.w/2/Math.abs(dx):Infinity,dy?B.h/2/Math.abs(dy):Infinity,1);
+  return [cx+dx*t,cy+dy*t];
+}
+function drawLinks(){
+  const show=linksOn||!!(curStep&&curStep.links.length);
+  svg.style.display=show?'':'none';$('legend').hidden=!show;document.body.classList.toggle('links-on',show);
+  if(!show){svg.textContent='';return}
+  const list=linksOn?LINKS:curStep.links.map(x=>x.l);
+  const f=n=>n.toFixed(1);let s='';
+  list.forEach(l=>{
+    if(!l.a.r||!l.b.r)return;
+    const A=sbox(l.a),B=sbox(l.b);
+    const ax=A.x+A.w/2,ay=A.y+A.h/2,bx=B.x+B.w/2,by=B.y+B.h/2,dx=bx-ax,dy=by-ay;
+    const cx=(ax+bx)/2-dy*0.18,cy=(ay+by)/2+dx*0.18;
+    const [sx,sy]=edge(A,cx,cy),[ex,ey]=edge(B,cx,cy);
+    const on=curStep&&(l.a===curStep||l.b===curStep);
+    const cls=KIND[l.k]+(curStep?(on?' on':' off'):'');
+    s+=`<path class="ln ${cls}" d="M${f(sx)},${f(sy)} Q${f(cx)},${f(cy)} ${f(ex)},${f(ey)}"/>`;
+    const tx=ex-cx,ty=ey-cy,tl=Math.hypot(tx,ty)||1,ux=tx/tl,uy=ty/tl,z=on?12:8;
+    s+=`<path class="ah ${cls}" d="M${f(ex)},${f(ey)} L${f(ex-ux*z-uy*z*.55)},${f(ey-uy*z+ux*z*.55)} L${f(ex-ux*z+uy*z*.55)},${f(ey-uy*z-ux*z*.55)}Z"/>`;
+  });
+  svg.innerHTML=s;
+}
+let isFit=false;
+function stopAnim(){if(anim){cancelAnimationFrame(anim);anim=null}}
+function zoomAt(f,cx,cy){
+  isFit=false;
+  const nz=Math.max(MINZ,Math.min(MAXZ,view.z*f));f=nz/view.z;
+  view.x=cx-(cx-view.x)*f;view.y=cy-(cy-view.y)*f;view.z=nz;apply();
+}
+function topOffset(){return document.querySelector('.bar').getBoundingClientRect().bottom}
+// panels are placed under the bar; the bar wraps to more rows on narrow screens
+const setBar=()=>document.documentElement.style.setProperty('--bar',Math.round(topOffset())+'px');
+if(window.ResizeObserver)new ResizeObserver(setBar).observe(document.querySelector('.bar'));setBar();
+function fit(animate){
+  const w=world.offsetWidth,h=world.offsetHeight,top=topOffset();
+  const W=innerWidth,H=innerHeight-top;
+  const z=Math.max(MINZ,Math.min(W/w,H/h)*0.98);
+  const t={z,x:(W-w*z)/2,y:top+(H-h*z)/2};
+  animate?animTo(t):(Object.assign(view,t),apply());
+  isFit=true;
+}
+let anim=null;
+function animTo(t){
+  if(anim)cancelAnimationFrame(anim);
+  if(reduce){Object.assign(view,t);apply();return}
+  const s={...view},t0=performance.now(),dur=550;
+  const step=now=>{let k=Math.min(1,(now-t0)/dur);k=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    view.x=s.x+(t.x-s.x)*k;view.y=s.y+(t.y-s.y)*k;view.z=s.z*Math.pow(t.z/s.z,k);apply();
+    if(k<1)anim=requestAnimationFrame(step);else anim=null};
+  anim=requestAnimationFrame(step);
+}
+function worldRect(e){ // element rect in world coordinates
+  let x=0,y=0,n=e;while(n&&n!==world){x+=n.offsetLeft;y+=n.offsetTop;n=n.offsetParent}
+  return {x,y,w:e.offsetWidth,h:e.offsetHeight};
+}
+// visible area, leaving room for open panels
+function visibleArea(){
+  const narrow=innerWidth<=640,top=topOffset();
+  const left=!narrow&&(!$('index').hidden||!$('laws').hidden||!$('acct').hidden)?332:0;
+  const right=!narrow&&!document.getElementById('detail').hidden?372:0;
+  const sheet=narrow&&!document.getElementById('detail').hidden?innerHeight*0.55:0;
+  return {x0:left,y0:top,W:innerWidth-left-right,H:innerHeight-top-sheet};
+}
+// mode 'region': show the element whole if possible, else its top-left at a readable zoom
+// mode 'point': show the element at a readable zoom (never in the far level)
+function flyToEl(e,mode){
+  isFit=false;
+  const r=worldRect(e),a=visibleArea(),pad=16;
+  const fitZ=Math.min((a.W-pad*2)/r.w,(a.H-pad*2)/r.h);
+  let z,x,y;
+  if(mode==='point'){
+    z=Math.min(MAXZ,Math.max(0.9,view.z)); // never zoom out the user
+    x=a.x0+a.W/2-(r.x+r.w/2)*z;y=a.y0+a.H/2-(r.y+r.h/2)*z;
+  }else{
+    const floor=0.8; // job names stay readable
+    z=Math.min(fitZ,1);
+    if(z>=floor){x=a.x0+a.W/2-(r.x+r.w/2)*z;y=a.y0+a.H/2-(r.y+r.h/2)*z}
+    else{z=floor;x=a.x0+pad-r.x*z;y=a.y0+pad-r.y*z} // too big to show whole: start at its top-left
+  }
+  animTo({z,x,y});
+}
+
+// pointer handling
+const ptrs=new Map();let moved=false,last=null,pinch=null;
+vp.addEventListener('pointerdown',e=>{
+  if(e.button!==0&&e.pointerType==='mouse')return;
+  if(anim){stopAnim();isFit=false} // a plain tap keeps the fit state; stopping a fly midway does not
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;
+  if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),cx:(a.x+b.x)/2,cy:(a.y+b.y)/2}}
+  last={x:e.clientX,y:e.clientY};
+});
+vp.addEventListener('pointermove',e=>{
+  if(!ptrs.has(e.pointerId))return;
+  const p=ptrs.get(e.pointerId);p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size===2&&pinch){
+    const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),cx=(a.x+b.x)/2,cy=(a.y+b.y)/2;
+    isFit=false;view.x+=cx-pinch.cx;view.y+=cy-pinch.cy;zoomAt(d/pinch.d,cx,cy);pinch={d,cx,cy};moved=true;return;
+  }
+  if(ptrs.size===1&&last){
+    const dx=e.clientX-last.x,dy=e.clientY-last.y;
+    if(!moved&&Math.hypot(dx,dy)<5)return;
+    if(!moved){moved=true;isFit=false;vp.classList.add('drag');try{vp.setPointerCapture(e.pointerId)}catch(_){}}
+    view.x+=dx;view.y+=dy;last={x:e.clientX,y:e.clientY};apply();
+  }
+});
+function up(e){ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(ptrs.size===1){const p=[...ptrs.values()][0];last={x:p.x,y:p.y}}if(!ptrs.size)vp.classList.remove('drag')}
+vp.addEventListener('pointerup',up);vp.addEventListener('pointercancel',up);
+vp.addEventListener('wheel',e=>{e.preventDefault();stopAnim();
+  const unit=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;
+  const k=e.ctrlKey?0.01:0.0018;zoomAt(Math.exp(-e.deltaY*unit*k),e.clientX,e.clientY)},{passive:false});
+// Safari trackpad pinch sends gesture events instead of ctrl+wheel
+let gs=1;
+vp.addEventListener('gesturestart',e=>{e.preventDefault();stopAnim();gs=1});
+vp.addEventListener('gesturechange',e=>{e.preventDefault();if(ptrs.size>=2)return; /* touch pinch is handled by pointer events */ zoomAt(e.scale/gs,e.clientX,e.clientY);gs=e.scale});
+vp.addEventListener('gestureend',e=>e.preventDefault());
+vp.addEventListener('click',e=>{
+  if(moved&&e.detail!==0){e.preventDefault();return} // keyboard activation has detail 0
+  const j=e.target.closest('.job,.sh');
+  if(j){ if(view.z<0.3){flyToEl(j.closest('.ind'),'region');return} if(j._st)openStep(j._st,false);else openJob(j._rec,false);return}
+  const card=e.target.closest('.ind');
+  if(card&&view.z<0.3)flyToEl(card,'region');
+});
+const center=()=>{const a=visibleArea();return [a.x0+a.W/2,a.y0+a.H/2]};
+document.getElementById('zin').onclick=()=>{stopAnim();zoomAt(1.4,...center())};
+document.getElementById('zout').onclick=()=>{stopAnim();zoomAt(1/1.4,...center())};
+document.getElementById('zfit').onclick=()=>fit(true);
+addEventListener('keydown',e=>{
+  if(e.target.matches('input')||e.ctrlKey||e.metaKey||e.altKey)return;
+  const PAN=120;
+  if(e.key==='+'||e.key==='='){stopAnim();zoomAt(1.25,...center())}
+  else if(e.key==='-'){stopAnim();zoomAt(0.8,...center())}
+  else if(e.key==='0')fit(true);
+  else if(e.key==='Escape'){togglePanel('detail',false);Object.keys(LEFT).forEach(id=>togglePanel(id,false))}
+  else if(e.key.startsWith('Arrow')&&!e.target.closest('.panel,.bar')){
+    e.preventDefault();stopAnim();isFit=false;
+    if(e.key==='ArrowLeft')view.x+=PAN;else if(e.key==='ArrowRight')view.x-=PAN;
+    else if(e.key==='ArrowUp')view.y+=PAN;else view.y-=PAN;apply();
+  }
+});
+// keyboard focus on a job that is off-screen or too small brings it into view
+let kbd=false;
+addEventListener('keydown',e=>{if(e.key==='Tab')kbd=true},true);
+addEventListener('pointerdown',()=>{kbd=false},true);
+world.addEventListener('focusin',e=>{
+  if(!kbd)return; // only for keyboard focus; a mouse press must not start a fly
+  const j=e.target.closest('.job,.sh');if(!j)return;
+  const b=j.getBoundingClientRect(),a=visibleArea();
+  const off=b.left<a.x0||b.right>a.x0+a.W||b.top<a.y0||b.bottom>a.y0+a.H;
+  if(off||view.z<0.6)flyToEl(j,'point');
+});
+
+// panels
+const LEFT={index:'btnIndex',laws:'btnLaws',acct:'btnAcct'};
+function togglePanel(id,on){const p=$(id);p.hidden=!on;
+  if(id==='detail')document.body.classList.toggle('detail-open',on);
+  if(LEFT[id]){$(LEFT[id]).setAttribute('aria-expanded',String(on));if(on)Object.keys(LEFT).forEach(o=>{if(o!==id)togglePanel(o,false)})} // one left panel at a time
+  // closing a panel that holds focus: hand focus back to what opened it
+  if(!on&&p.contains(document.activeElement)){
+    const back=id==='detail'?(curEl||(curStep&&curStep.el)||(curLaw&&$('btnLaws'))||(curAcct&&$('btnAcct'))):$(LEFT[id]);
+    if(back)back.focus({preventScroll:true});
+  }
+  if(id==='detail'&&!on){clearSel();drawLinks()}}
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>togglePanel(b.dataset.close,false));
+Object.keys(LEFT).forEach(id=>{$(LEFT[id]).onclick=()=>{const p=$(id);togglePanel(id,p.hidden);if(!p.hidden&&innerWidth<=1000)togglePanel('detail',false)}});
+$('btnLinks').onclick=()=>{linksOn=!linksOn;$('btnLinks').setAttribute('aria-pressed',String(linksOn));drawLinks()};
+
+function clearSel(){
+  if(curJob)curJob.inst.forEach(r=>r.el.classList.remove('same'));
+  if(curEl)curEl.classList.remove('cur');
+  if(curStep)curStep.el.classList.remove('cur');
+  if(curLaw){curLaw.steps.forEach(x=>x.st.col.classList.remove('lawhit'));curLaw.jobs.forEach(x=>x.job.inst.forEach(r=>r.el.classList.remove('lawhit')));world.classList.remove('lawing')}
+  if(curAcct){curAcct.uses.forEach(u=>u.st.col.classList.remove('lawhit'));world.classList.remove('lawing')}
+  curEl=curJob=curStep=curLaw=curAcct=null;
+  drawLinks();
+}
+// the detail panel: a crumb, a title and a body filled by each kind of item
+function openDetail(colorVar,crumb,title){
+  const d=$('detail');d.style.setProperty('--sc',`var(${colorVar||'--accent'})`);
+  const cr=$('dCrumb');cr.textContent='';
+  crumb.forEach((c,i)=>{if(i===0)cr.append(Object.assign(el('b'),{textContent:c}));else cr.append('　'+c)});
+  $('dName').textContent=title;
+  const body=$('dBody');body.textContent='';return body;
+}
+function showDetail(){
+  // on a phone every left panel closes; on a tablet only the list that the shown item came from stays open
+  if(innerWidth<=1000)Object.keys(LEFT).forEach(id=>{if(innerWidth<=640||!((id==='laws'&&curLaw)||(id==='acct'&&curAcct)))togglePanel(id,false)})
+  togglePanel('detail',true);$('detail').scrollTop=0;
+  if(kbd)$('dName').focus({preventScroll:true}); // keyboard users land in the panel
+}
+function lbl(t,top){const p=el('p','lbl',t);if(top)p.style.marginTop='16px';return p}
+// one row of a list: main text, a small line, an optional note
+function row(main,sub,note,on,fn,sw){const li=el('li');const b=el('button',on?'on':null);b.type='button';
+  if(sw)b.appendChild(el('i','sw '+sw));b.appendChild(document.createTextNode(main));
+  if(sub)b.appendChild(el('small',null,sub));if(note)b.appendChild(el('span','nt',note));
+  b.onclick=fn;li.appendChild(b);return li}
+function lawRows(list,label){const ul=el('ul','where');
+  list.forEach(x=>ul.appendChild(row(x.law.n,x.law.c,x.note,false,()=>openLaw(x.law))));return [lbl(label,true),ul]}
+// one journal entry: who keeps the book, what happened, then the left (debit) and right (credit) sides
+function jeBox(je,cur,tag){const b=el('div','je');
+  if(tag)b.appendChild(el('p','tag',tag));
+  b.appendChild(el('p','who',je.who));b.appendChild(el('p','what',je.what));
+  const ac=a=>{const x=el('button','ac'+(a===cur?' on':''),a.n);x.type='button';x.onclick=()=>openAcct(a);return x};
+  if(je.m==='double'){const tt=el('div','tt');
+    [['借方（左）',je.dr],['貸方（右）',je.cr]].forEach(([s,list])=>{const c=el('div');c.appendChild(el('span','side',s));list.forEach(a=>c.appendChild(ac(a)));tt.appendChild(c)});
+    b.appendChild(tt)}
+  else if(je.m==='cash'){const c=el('div','cash');c.append(je.io==='入'?'収入として記録：':'支出として記録：');je.dr.forEach(a=>c.appendChild(Object.assign(ac(a),{style:'display:inline'})));b.appendChild(c)}
+  if(je.note)b.appendChild(el('p','jn',je.note));
+  return b}
+// keep an element visible after the panel opened over it
+function keepVisible(e){
+  const b=e.getBoundingClientRect(),a=visibleArea();
+  let dx=0,dy=0;
+  if(b.right>a.x0+a.W)dx=a.x0+a.W-b.right-16;else if(b.left<a.x0)dx=a.x0-b.left+16;
+  if(b.bottom>a.y0+a.H)dy=a.y0+a.H-b.bottom-16;else if(b.top<a.y0)dy=a.y0-b.top+16;
+  if(dx||dy)animTo({z:view.z,x:view.x+dx,y:view.y+dy});
+}
+const scOf=ind=>SECTOR_COLOR[ind.sector]||'--accent';
+
+function openJob(rec,fly){
+  clearSel();
+  curEl=rec.el;curJob=rec.job;rec.el.classList.add('cur');
+  curJob.inst.forEach(r=>{if(r!==rec)r.el.classList.add('same')});
+  const body=openDetail(scOf(rec.ind),[rec.ind.name,rec.f.name,rec.st.name],rec.job.n);
+  body.appendChild(el('p','sum',rec.job.s));
+  const hi=D.find(i=>i.id===rec.job.hi);
+  body.appendChild(el('p','home',`主に働く業種：${hi?hi.name:''}（${rec.job.hs}）`));
+  body.appendChild(lbl((rec.f.group?'このまとまり：':'この流れ：')+rec.f.name));
+  const fl=el('div','flowline');
+  rec.f.steps.forEach((s,i)=>{if(i)fl.appendChild(el('i',null,rec.f.group?'｜':'→'));fl.appendChild(el('span',i===rec.si?'on':null,s.name))});
+  body.appendChild(fl);
+  const others=rec.st.jobs.filter(k=>JM[k]!==rec.job);
+  if(others.length){body.appendChild(lbl('この段階で一緒に働く職業'));const sib=el('div','sib');
+    others.forEach(k=>{const r=JM[k].inst.find(x=>x.st===rec.st);const b=el('button',null,JM[k].n);b.type='button';b.onclick=()=>openJob(r,true);sib.appendChild(b)});body.appendChild(sib)}
+  const st=rec.st;
+  const nj=jeCount(st);
+  if(st.links.length||st.laws.length||st.ents.length){
+    const b=el('button','stepbtn');b.type='button';
+    b.textContent=`段階「${st.name}」を開く（${[st.links.length?`ほかの業種とのつながり${st.links.length}本`:'',st.laws.length?`法律${st.laws.length}本`:'',nj?`仕訳${nj}`:'',!nj&&st.ents.length?'仕訳の説明':''].filter(Boolean).join('、')}）`;
+    b.onclick=()=>openStep(st,false);body.appendChild(lbl('この段階',true));body.appendChild(b)}
+  if(rec.job.laws&&rec.job.laws.length)body.append(...lawRows(rec.job.laws,'資格や仕事を決めている法律'));
+  body.appendChild(lbl(`関わる段階（${rec.job.inst.length}か所）`,true));
+  const wh=el('ul','where');
+  rec.job.inst.forEach(r=>wh.appendChild(row(r.st.name,`${r.ind.name}　${r.f.name}`,null,r===rec,()=>openJob(r,true))));
+  body.appendChild(wh);
+  showDetail();
+  if(fly){flyToEl(rec.el,'point');return}
+  keepVisible(rec.el); // a job clicked under the panel: slide the map so it stays visible
+}
+
+function openStep(st,fly){
+  clearSel();
+  curStep=st;st.el.classList.add('cur');
+  const body=openDetail(scOf(st.ind),[st.ind.name,st.f.name],st.name);
+  body.appendChild(el('p','sum',st.desc));
+  body.appendChild(lbl(`この段階の職業（${st.jobs.length}）`));
+  const sib=el('div','sib');
+  st.jobs.forEach(k=>{const r=JM[k].inst.find(x=>x.st===st);const b=el('button',null,JM[k].n);b.type='button';b.onclick=()=>openJob(r,true);sib.appendChild(b)});
+  body.appendChild(sib);
+  const out=st.links.filter(x=>x.dir==='out'),inn=st.links.filter(x=>x.dir==='in');
+  const linkRows=(label,list)=>{body.appendChild(lbl(label,true));const ul=el('ul','where');
+    list.forEach(x=>{const li=row(`${x.other.ind.name}　${x.other.name}`,`${x.l.k}：${x.l.d}`,null,false,()=>openStep(x.other,true),KIND[x.l.k]);
+      // money links: this side's entry first, then the other side's
+      // the other party's entry sits under the link; this step's own side is listed in the 仕訳 section below
+      x.l.ents.filter(je=>je.sd!==sideOf(x)).forEach(je=>li.appendChild(jeBox(je,null,`相手の側の仕訳（${je.sd==='a'?'払う側':'受け取る側'}）`)));
+      ul.appendChild(li)});body.appendChild(ul)};
+  if(out.length)linkRows(`渡す先（${out.length}）`,out);
+  if(inn.length)linkRows(`受け取る元（${inn.length}）`,inn);
+  if(st.laws.length)body.append(...lawRows(st.laws,`かかわる法律（${st.laws.length}）`));
+  const nj=jeCount(st),notes=st.ents.filter(e=>e.m==='none');
+  if(nj){body.appendChild(lbl(`この段階の仕訳（${nj}）`,true));
+    st.ents.filter(e=>e.m!=='none').forEach(je=>body.appendChild(jeBox(je)));
+    st.links.forEach(x=>x.l.ents.filter(je=>je.sd===sideOf(x)).forEach(je=>body.appendChild(jeBox(je,null,`お金のつながり：${x.other.ind.name}「${x.other.name}」${x.dir==='out'?'へ払う':'から受け取る'}`))))}
+  if(notes.length){body.appendChild(lbl('仕訳について',true));notes.forEach(je=>body.appendChild(el('p','muted',`${je.who}：${je.what}${je.note?'。'+je.note:''}`)))}
+  if(!st.links.length&&!st.laws.length&&!st.ents.length)body.appendChild(el('p','muted','この段階には、ほかの業種とのつながりと、法律と、仕訳を載せていません。'));
+  else if(st.links.length)body.appendChild(el('p','muted','地図には、この段階のつながりを線で引いています。線の色は、渡るもの（もの・お金・人・情報）を表します。'));
+  showDetail();drawLinks();
+  if(fly){flyToEl(st.el,'point');return}
+  keepVisible(st.el);
+}
+
+function openLaw(law){
+  clearSel();
+  // the law highlight replaces any search highlight, so only this law's steps and jobs glow
+  if(q.value){q.value='';INST.forEach(r=>r.el.classList.remove('hit'));world.classList.remove('searching');res.hidden=true;hits=[]}
+  curLaw=law;world.classList.add('lawing');
+  law.steps.forEach(x=>x.st.col.classList.add('lawhit'));law.jobs.forEach(x=>x.job.inst.forEach(r=>r.el.classList.add('lawhit')));
+  const body=openDetail('--accent',[law.c],law.n);
+  body.appendChild(el('p','sum',law.p));
+  if(law.steps.length){body.appendChild(lbl(`かかわる段階（${law.steps.length}）`));const ul=el('ul','where');
+    law.steps.forEach(x=>{const li=row(x.st.name,`${x.st.ind.name}　${x.st.f.name}`,x.note,false,()=>{ul.querySelectorAll('button.on').forEach(b=>b.classList.remove('on'));li.firstChild.classList.add('on');flyToEl(x.st.col,'region')});ul.appendChild(li)});
+    body.appendChild(ul)}
+  if(law.jobs.length){body.appendChild(lbl(`資格や仕事を決めている職業（${law.jobs.length}）`,true));const ul=el('ul','where');
+    law.jobs.forEach(x=>{const r=x.job.inst.find(i=>i.ind.id===x.job.hi)||x.job.inst[0];
+      const li=row(x.job.n,null,x.note,false,()=>{ul.querySelectorAll('button.on').forEach(b=>b.classList.remove('on'));li.firstChild.classList.add('on');flyToEl(r.el,'point')});ul.appendChild(li)});
+    body.appendChild(ul)}
+  body.appendChild(el('p','muted','地図の上で、この法律がかかわる段階と職業が光っています。'));
+  if(law.id){const a=el('a','ext','条文を読む（e-Gov法令検索）');a.href='https://laws.e-gov.go.jp/law/'+law.id;a.target='_blank';a.rel='noopener';const p=el('p');p.appendChild(a);body.appendChild(p)}
+  showDetail();drawLinks();
+}
+
+function openAcct(a){
+  clearSel();
+  if(q.value){q.value='';INST.forEach(r=>r.el.classList.remove('hit'));world.classList.remove('searching');res.hidden=true;hits=[]}
+  curAcct=a;world.classList.add('lawing');a.uses.forEach(u=>u.st.col.classList.add('lawhit'));
+  const body=openDetail('--ko',[a.c,a.w==='会社'?'会社の科目':a.w+'の科目'],a.n);
+  body.appendChild(el('p','sum',a.p));
+  const s=a.s!=null?SRC[a.s]:null,sp=el('p','src');
+  if(s){sp.append(`科目の名前の根拠：${s.n}　${a.a}　`);const x=el('a','ext','条文を読む（e-Gov法令検索）');x.href='https://laws.e-gov.go.jp/law/'+s.id;x.target='_blank';x.rel='noopener';sp.appendChild(x);if(s.d)sp.appendChild(el('small',null,s.d))}
+  else sp.append('帳簿でよく使う名前で、法令で決まった名前ではありません。');
+  body.appendChild(sp);
+  body.appendChild(lbl(`この科目が出てくる仕訳（${a.uses.length}）`));const ul=el('ul','where');
+  a.uses.forEach(u=>{const je=u.je;
+    const sub=je.l?`${u.st.ind.name}　お金のつながり：${je.l.a.ind.name}「${je.l.a.name}」から${je.l.b.ind.name}「${je.l.b.name}」へ`:`${u.st.ind.name}　${u.st.f.name}`;
+    const li=row(`${u.st.name}（${je.m==='double'?u.side:je.io==='入'?'収入':'支出'}）`,sub,null,false,()=>{ul.querySelectorAll(':scope>li>button.on').forEach(b=>b.classList.remove('on'));li.firstChild.classList.add('on');flyToEl(u.st.col,'region')});
+    li.appendChild(jeBox(je,a));ul.appendChild(li)});
+  body.appendChild(ul);
+  body.appendChild(el('p','muted','地図の上で、この科目が出てくる段階が光っています。'));
+  showDetail();drawLinks();
+}
+
+// search
+const q=document.getElementById('q'),res=document.getElementById('results');let hits=[],sel=-1;
+const ALIAS={'先生':['教諭','講師','教員','師範','教授'],'医者':['医師'],'お医者さん':['医師'],'歯医者':['歯科医師'],'看護婦':['看護師'],
+ '漁師':['漁業','漁船員','漁労','海女'],'保育園':['保育'],'幼稚園':['幼稚園教諭'],'ユーチューバー':['youtuber','動画クリエイター'],'警察':['警察官','刑事','機動隊'],
+ '消防士':['消防官'],'大工さん':['大工'],'運転手':['運転士','ドライバー'],'公務員':['国家公務員','地方公務員','自治体','監督官','審査官','調査官','警察官','消防官','自衛官','刑務官'],'エンジニア':['技術者','技師'],'デザイン':['デザイナー'],
+ '店員':['販売員','店員','レジ係','店長'],'料理人':['調理師','シェフ','板前','料理人','パティシエ'],'コック':['調理師','シェフ'],'社長':['経営者'],'会社員':['営業','事務','経理','人事'],
+ 'ホテル':['旅館','客室清掃','コンシェルジュ','ベルスタッフ'],'パン屋':['パン職人','パン製造'],'ケーキ':['パティシエ','菓子'],'お坊さん':['僧侶'],'神主':['神職'],'看護':['看護師'],'介護':['介護福祉士','ヘルパー'],'銀行員':['銀行','融資','テラー']};
+function norm(s){return s.normalize('NFKC').toLowerCase().replace(/[ァ-ン]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))}
+// keys and values normalized the same way as the typed words (katakana becomes hiragana)
+const ALIAS_N=Object.assign(Object.create(null),Object.fromEntries(Object.entries(ALIAS).map(([k,v])=>[norm(k),v.map(norm)]))); // no inherited keys such as constructor
+q.addEventListener('input',()=>{
+  const t=norm(q.value.trim());
+  INST.forEach(r=>r.el.classList.remove('hit'));
+  if(!t){world.classList.remove('searching');res.hidden=true;hits=[];return}
+  // laws: the name first, then the purpose
+  const aw=ACCTS.filter(a=>(a._n||(a._n=norm(a.n))).includes(t));
+  const lw=LAWS.filter(l=>{const h=l._n||(l._n=norm(l.n));return h.includes(t)}),lp=LAWS.filter(l=>!lw.includes(l)&&(l._p||(l._p=norm(l.p))).includes(t));
+  // each word may also match its everyday synonyms
+  const words=t.split(/\s+/).map(w=>[w,...(ALIAS_N[w]||[])]);
+  // the typed word matches name, summary, industry and stage; synonyms match only name and summary
+  hits=JM.filter(j=>{const h=j._n||(j._n=norm(j.n+' '+j.s+' '+j.inst.map(r=>r.ind.name+' '+r.f.name+' '+r.st.name).join(' ')));const hs=j._s||(j._s=norm(j.n+' '+j.s));
+    return words.every(([w,...al])=>h.includes(w)||al.some(a=>hs.includes(a)))});
+  // order: the typed word in the name, then a synonym in the name, then the rest
+  const nm=j=>{const n=norm(j.n);return n.includes(words[0][0])?0:words[0].slice(1).some(w=>n.includes(w))?1:2};
+  hits.sort((a,b)=>nm(a)-nm(b));
+  hits.forEach(j=>j.inst.forEach(r=>r.el.classList.add('hit')));world.classList.toggle('searching',hits.length>0); // a search that finds only laws does not dim the map
+  res.textContent='';sel=-1;
+  const lawBtn=l=>{const b=el('button');b.type='button';const n=el('div','rn');n.appendChild(el('span','rk','法律'));n.append(l.n);b.appendChild(n);
+    b.appendChild(el('div','rp',`${l.c}　段階${l.steps.length}・職業${l.jobs.length}`));b.onclick=()=>{res.hidden=true;if(innerWidth<=640)q.blur();openLaw(l)};res.appendChild(b)};
+  const acctBtn=a=>{const b=el('button');b.type='button';const n=el('div','rn');n.appendChild(el('span','rk','科目'));n.append(a.n);b.appendChild(n);
+    b.appendChild(el('div','rp',`${a.c}・${a.w}　仕訳${a.uses.length}`));b.onclick=()=>{res.hidden=true;if(innerWidth<=640)q.blur();openAcct(a)};res.appendChild(b)};
+  if(!hits.length&&!lw.length&&!lp.length&&!aw.length){res.appendChild(el('div','empty','見つかりませんでした。別の言葉で試してください。'))}
+  // law names come right after the jobs whose names hold the typed word
+  const top=hits.filter(j=>nm(j)===0).length;let lawsShown=false;
+  const showLaws=()=>{if(!lawsShown){lawsShown=true;lw.slice(0,8).forEach(lawBtn);aw.slice(0,8).forEach(acctBtn)}};
+  if(!top)showLaws();
+  hits.slice(0,80).forEach((j,i)=>{if(i===top)showLaws();const b=el('button');b.type='button';b.appendChild(el('div','rn',j.n));
+    const hi=D.find(x=>x.id===j.hi);b.appendChild(el('div','rp',`${hi?hi.name:''}　関わる段階${j.inst.length}か所`));
+    const first=j.inst.find(r=>r.ind.id===j.hi)||j.inst[0];
+    b.onclick=()=>{res.hidden=true;if(innerWidth<=640)q.blur();openJob(first,true)};res.appendChild(b)});
+  showLaws();
+  if(hits.length>80)res.appendChild(el('div','empty',`ほか${hits.length-80}件。地図上で光っています。`));
+  lp.slice(0,5).forEach(lawBtn);
+  res.hidden=false;
+});
+q.addEventListener('keydown',e=>{
+  if(e.isComposing||e.keyCode===229)return; // IME conversion in progress
+  if(res.hidden&&(e.key==='ArrowDown'||e.key==='ArrowUp'||e.key==='Enter')){
+    if(e.key!=='Enter'&&q.value.trim()){res.hidden=false}else return; // act only on a visible list
+  }
+  const bs=[...res.querySelectorAll('button')];
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!bs.length)return;sel=(sel+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length;bs.forEach((b,i)=>b.classList.toggle('sel',i===sel));bs[sel].scrollIntoView({block:'nearest'})}
+  else if(e.key==='Enter'){if(bs.length)(bs[sel>=0?sel:0]).click()}
+  else if(e.key==='Escape'){q.value='';q.dispatchEvent(new Event('input'));q.blur()}
+});
+q.addEventListener('focus',()=>{if(innerWidth<=640){togglePanel('detail',false);Object.keys(LEFT).forEach(id=>togglePanel(id,false))}if(q.value.trim())res.hidden=false});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.search'))res.hidden=true});
+
+let rsz=null;
+addEventListener('resize',()=>{clearTimeout(rsz);rsz=setTimeout(()=>{if(!D.length)return;if(isFit){measure();fit(false)}else apply()},150)});
+
+fetch('data.json').then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
+  D=d.industries;JM=d.jobs;wire(d);build();document.getElementById('loading').remove();
+  measure();requestAnimationFrame(()=>fit(false));
+  // web fonts change card sizes; re-measure once they are in
+  const ready=document.fonts&&document.fonts.ready;
+  if(ready)Promise.race([ready,new Promise(r=>setTimeout(r,4000))]).then(()=>{measure();if(isFit)fit(false);else apply()});
+}).catch(err=>{document.getElementById('loading').textContent='データを読み込めませんでした。ページを再読み込みしてください。（'+err.message+'）'});
+})();
+</script>
+
+</body>
+</html>
